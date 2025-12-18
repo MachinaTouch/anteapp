@@ -81,7 +81,7 @@ export default function SettingsPage() {
     <div className="max-w-md mx-auto min-h-screen bg-background">
       <header className="fixed top-0 left-0 right-0 max-w-md mx-auto bg-background border-b border-border z-50">
         <div className="px-6 py-5 flex items-center justify-between">
-          <button onClick={() => navigate(-1)} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => navigate('/ledger')} className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="font-black text-xl tracking-tight">SETTINGS</h1>
