@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, Filter, Brain } from 'lucide-react';
+import { ChevronRight, Filter, Brain, Trash2 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { supabase } from '@/integrations/supabase/client';
@@ -104,6 +104,14 @@ export default function Arena() {
     if (days === 1) return '1 day ago';
     if (days < 7) return `${days} days ago`;
     return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
+  };
+
+  const handleDeleteRisk = async (e: React.MouseEvent, riskId: string) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this risk?')) return;
+    
+    await supabase.from('risks').delete().eq('id', riskId);
+    fetchRisks();
   };
 
   // Demo data if no risks exist
@@ -244,6 +252,12 @@ export default function Arena() {
                     </div>
                     <p className="text-sm leading-relaxed mb-3">{risk.description}</p>
                   </div>
+                  <button
+                    onClick={(e) => handleDeleteRisk(e, risk.id)}
+                    className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <div className="flex items-center gap-4">
