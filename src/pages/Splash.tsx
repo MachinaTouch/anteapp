@@ -20,38 +20,55 @@ export default function Splash() {
         } else {
           navigate('/auth');
         }
-      }, 2500);
+      }, 3000);
       return () => clearTimeout(redirectTimer);
     }
   }, [user, loading, navigate]);
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-background flex flex-col items-center justify-center px-6">
-      <div className={`flex flex-col items-center transition-all duration-700 ${showContent ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-        <div className="w-24 h-24 border-2 border-foreground flex items-center justify-center mb-6 animate-border-pulse">
-          <span className="font-black text-4xl">A</span>
+    <div className="max-w-md mx-auto min-h-screen bg-void flex flex-col items-center justify-center px-6 overflow-hidden">
+      {/* Main Logo Section */}
+      <div className={`flex flex-col items-center opacity-0 ${showContent ? 'animate-fade-in' : ''}`}>
+        {/* Logo Box */}
+        <div className="w-20 h-20 border-2 border-stark flex items-center justify-center mb-6 animate-border-pulse">
+          <span className="font-sans font-black text-4xl text-stark">A</span>
         </div>
-        <h1 className="font-black text-5xl tracking-tight mb-3">ANTE</h1>
-        <p className="text-muted-foreground text-sm text-center font-mono uppercase tracking-wider">Risk Registry</p>
-      </div>
-
-      <div className={`mt-16 transition-all duration-700 delay-500 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-        <div className="border border-border p-6 max-w-xs">
-          <p className="text-center text-sm leading-relaxed mb-4">
-            Courage is not the absence of fear.<br />
-            It is action in the presence of it.
-          </p>
-          <div className="flex justify-center">
-            <div className="w-12 h-[1px] bg-border"></div>
-          </div>
+        
+        {/* Title */}
+        <h1 className="font-sans font-black text-5xl tracking-tight text-stark mb-2">ANTE</h1>
+        
+        {/* Tagline with decorative lines */}
+        <div className="flex items-center gap-3 mt-2 opacity-0 animate-fade-in" style={{ animationDelay: '400ms', animationFillMode: 'forwards' }}>
+          <div className="w-8 h-[1px] bg-ghost"></div>
+          <p className="text-ghost text-xs font-sans uppercase tracking-[0.2em]">Place Your Courage</p>
+          <div className="w-8 h-[1px] bg-ghost"></div>
         </div>
       </div>
 
-      <div className={`absolute bottom-12 transition-all duration-700 delay-1000 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Philosophy Section */}
+      <div 
+        className="mt-16 max-w-xs opacity-0 animate-slide-up"
+        style={{ animationDelay: '800ms', animationFillMode: 'forwards' }}
+      >
+        <div className="text-center space-y-1">
+          <p className="text-ghost text-sm font-sans leading-relaxed">Track your risks.</p>
+          <p className="text-ghost text-sm font-sans leading-relaxed">Build your courage.</p>
+          <p className="text-ghost text-sm font-sans leading-relaxed">Trust your intuition.</p>
+        </div>
+      </div>
+
+      {/* Loading Indicator */}
+      <div 
+        className="absolute bottom-16 flex flex-col items-center gap-4 opacity-0 animate-fade-in"
+        style={{ animationDelay: '1200ms', animationFillMode: 'forwards' }}
+      >
+        {/* Three dots loading animation */}
         <div className="flex items-center gap-2">
-          <div className="w-1 h-1 bg-foreground animate-pulse"></div>
-          <span className="text-xs font-mono text-muted-foreground">Loading</span>
+          <div className="w-1.5 h-1.5 bg-stark rounded-full animate-pulse-glow"></div>
+          <div className="w-1.5 h-1.5 bg-stark rounded-full animate-pulse-glow" style={{ animationDelay: '200ms' }}></div>
+          <div className="w-1.5 h-1.5 bg-stark rounded-full animate-pulse-glow" style={{ animationDelay: '400ms' }}></div>
         </div>
+        <span className="text-xs font-sans text-ghost uppercase tracking-[0.15em]">Initializing</span>
       </div>
     </div>
   );
