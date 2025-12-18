@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, Filter, Brain, Trash2 } from 'lucide-react';
+import { ChevronRight, Filter, Brain, Trash2, Eye, Lock } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ interface Risk {
   outcome?: string;
   xp_earned?: number;
   intuition_correct?: boolean;
+  is_public?: boolean;
 }
 
 export default function Arena() {
@@ -249,6 +250,11 @@ export default function Arena() {
                       <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
                         Risk #{1247 - index}
                       </span>
+                      {risk.is_public ? (
+                        <Eye className="w-3 h-3 text-muted-foreground" />
+                      ) : (
+                        <Lock className="w-3 h-3 text-muted-foreground" />
+                      )}
                     </div>
                     <p className="text-sm leading-relaxed mb-3">{risk.description}</p>
                   </div>
@@ -297,9 +303,16 @@ export default function Arena() {
               className="border border-border mb-3 p-4"
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
-                  Risk #{1240 - index}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
+                    Risk #{1240 - index}
+                  </span>
+                  {risk.is_public ? (
+                    <Eye className="w-3 h-3 text-muted-foreground" />
+                  ) : (
+                    <Lock className="w-3 h-3 text-muted-foreground" />
+                  )}
+                </div>
                 <span className={`font-mono text-xs font-bold ${risk.outcome === 'SUCCESS' ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {risk.outcome || 'PENDING'}
                 </span>
