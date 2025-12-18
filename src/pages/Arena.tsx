@@ -13,6 +13,8 @@ interface Risk {
   status: string;
   created_at: string;
   outcome?: string;
+  xp_earned?: number;
+  intuition_correct?: boolean;
 }
 
 export default function Arena() {
@@ -21,8 +23,18 @@ export default function Arena() {
   const { user } = useAuth();
   const [risks, setRisks] = useState<Risk[]>([]);
   const [stats, setStats] = useState({ active: 0, settled: 0, winRate: 0 });
-  const [totalXp, setTotalXp] = useState(1250);
-  const [level, setLevel] = useState(12);
+  const [totalXp, setTotalXp] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [intuitionStats, setIntuitionStats] = useState({ accuracy: 0, correct: 0, incorrect: 0, grade: '—' });
+
+  const getGrade = (accuracy: number): string => {
+    if (accuracy >= 90) return 'A+';
+    if (accuracy >= 80) return 'A';
+    if (accuracy >= 70) return 'B';
+    if (accuracy >= 60) return 'C';
+    if (accuracy >= 50) return 'D';
+    return 'F';
+  };
 
   const fetchRisks = useCallback(async () => {
     if (!user?.id) return;
@@ -51,6 +63,25 @@ export default function Arena() {
     const active = activeRisks.length;
     const settled = settledRisks.length;
     const wins = settledRisks.filter(r => r.outcome === 'SUCCESS').length;
+    
+    // Calculate total XP and level
+    const xp = settledRisks.reduce((sum, r) => sum + (r.xp_earned || 0), 0);
+    setTotalXp(xp);
+    setLevel(Math.floor(xp / 100) + 1);
+
+    // Calculate intuition stats using intuition_correct boolean
+    const correctPredictions = settledRisks.filter(r => r.intuition_correct === true).length;
+    const incorrectPredictions = settledRisks.filter(r => r.intuition_correct === false).length;
+    const totalPredictions = correctPredictions + incorrectPredictions;
+    const accuracy = totalPredictions > 0 ? Math.round((correctPredictions / totalPredictions) * 100) : 0;
+    
+    setIntuitionStats({
+      accuracy,
+      correct: correctPredictions,
+      incorrect: incorrectPredictions,
+      grade: totalPredictions > 0 ? getGrade(accuracy) : '—'
+    });
+
     setStats({
       active,
       settled,
@@ -82,15 +113,8 @@ export default function Arena() {
     { id: '3', description: 'Have the difficult conversation with my partner about our future plans', forecast: 'SUCCESS', status: 'active', created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() },
   ];
 
-  const demoSettlements: Risk[] = [
-    { id: '4', description: 'Asked for a promotion after being passed over twice', forecast: 'SUCCESS', outcome: 'SUCCESS', status: 'settled', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: '5', description: 'Confronted my landlord about the broken heater', forecast: 'FAILURE', outcome: 'SUCCESS', status: 'settled', created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString() },
-  ];
-
   const displayRisks = risks.length > 0 ? risks : demoRisks;
-  const displaySettlements = risks.filter(r => r.status === 'settled').length > 0 
-    ? risks.filter(r => r.status === 'settled').slice(0, 3) 
-    : demoSettlements;
+  const displaySettlements = risks.filter(r => r.status === 'settled').slice(0, 3);
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-background relative pb-20">
@@ -162,25 +186,22 @@ export default function Arena() {
                 <h4 className="font-bold text-sm">Intuition Analysis</h4>
                 <p className="text-xs text-muted-foreground">Your forecast accuracy</p>
               </div>
+              <div className="ml-auto w-10 h-10 border-2 border-foreground flex items-center justify-center">
+                <span className="font-black text-sm">{intuitionStats.grade}</span>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center">
-                <div className="font-mono text-xl font-bold">78%</div>
+                <div className="font-mono text-xl font-bold">{intuitionStats.accuracy}%</div>
                 <div className="text-xs text-muted-foreground">Accuracy</div>
               </div>
               <div className="text-center">
-                <div className="font-mono text-xl font-bold">37</div>
+                <div className="font-mono text-xl font-bold">{intuitionStats.correct}</div>
                 <div className="text-xs text-muted-foreground">Correct</div>
               </div>
               <div className="text-center">
-                <div className="font-mono text-xl font-bold">10</div>
+                <div className="font-mono text-xl font-bold">{intuitionStats.incorrect}</div>
                 <div className="text-xs text-muted-foreground">Incorrect</div>
-              </div>
-            </div>
-            <div className="mt-4 pt-3 border-t border-border">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-foreground"></div>
-                <span className="text-xs font-mono text-muted-foreground">TRENDING UPWARD +12%</span>
               </div>
             </div>
           </div>
@@ -260,7 +281,7 @@ export default function Arena() {
               <p className="text-sm leading-relaxed mb-2">{risk.description}</p>
               <div className="flex items-center justify-between pt-2 border-t border-border">
                 <span className="text-xs text-muted-foreground">{getTimeAgo(risk.created_at)}</span>
-                <span className="font-mono text-sm font-bold">+150 XP</span>
+                <span className="font-mono text-sm font-bold">+{risk.xp_earned || 0} XP</span>
               </div>
             </div>
           ))}

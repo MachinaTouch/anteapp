@@ -1,12 +1,36 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Bell, Shield, HelpCircle, LogOut, ChevronRight, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const [totalXp, setTotalXp] = useState(0);
+  const [level, setLevel] = useState(1);
+
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      if (!user?.id) return;
+
+      const { data } = await supabase
+        .from('risks')
+        .select('xp_earned')
+        .eq('user_id', user.id)
+        .eq('status', 'settled');
+
+      if (data) {
+        const xp = data.reduce((sum, r) => sum + (r.xp_earned || 0), 0);
+        setTotalXp(xp);
+        setLevel(Math.floor(xp / 100) + 1);
+      }
+    };
+
+    fetchUserStats();
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -74,7 +98,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <div className="font-bold text-lg">{user?.email || 'Anonymous'}</div>
-              <div className="text-muted-foreground text-sm font-mono">Level 12 • 1,250 XP</div>
+              <div className="text-muted-foreground text-sm font-mono">Level {level} • {totalXp.toLocaleString()} XP</div>
             </div>
           </div>
         </section>
