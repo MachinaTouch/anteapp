@@ -12,6 +12,10 @@ import Settlement from "./pages/Settlement";
 import Society from "./pages/Society";
 import Ledger from "./pages/Ledger";
 import SettingsPage from "./pages/Settings";
+import ProfileSettings from "./pages/settings/ProfileSettings";
+import NotificationSettings from "./pages/settings/NotificationSettings";
+import PrivacySettings from "./pages/settings/PrivacySettings";
+import HelpSettings from "./pages/settings/HelpSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +49,10 @@ function AppRoutes() {
       <Route path="/society" element={<ProtectedRoute><Society /></ProtectedRoute>} />
       <Route path="/ledger" element={<ProtectedRoute><Ledger /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/settings/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
+      <Route path="/settings/notifications" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />
+      <Route path="/settings/privacy" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
+      <Route path="/settings/help" element={<ProtectedRoute><HelpSettings /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
