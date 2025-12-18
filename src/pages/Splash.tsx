@@ -12,7 +12,7 @@ export default function Splash() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleEnterArena = () => {
+  const handleGetStarted = () => {
     if (user) {
       navigate('/arena');
     } else {
@@ -21,78 +21,90 @@ export default function Splash() {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col px-6 py-12 overflow-hidden" style={{ backgroundColor: '#050505' }}>
+    <div className="max-w-md mx-auto min-h-screen flex flex-col items-center px-6 py-12 overflow-hidden" style={{ backgroundColor: '#050505' }}>
       {/* Top Section - Logo */}
       <div className={`flex flex-col items-center opacity-0 ${showContent ? 'animate-fade-in' : ''}`}>
         {/* Logo Box */}
-        <div className="w-24 h-24 border-2 border-stark flex items-center justify-center mb-6 animate-border-pulse">
-          <span className="font-sans font-black text-5xl text-stark">A</span>
+        <div className="w-32 h-32 border-2 border-steel flex items-center justify-center mb-6">
+          <span className="font-sans font-black text-6xl text-stark">A</span>
         </div>
         
         {/* Title */}
-        <h1 className="font-sans font-black text-5xl tracking-tight text-stark mb-3">ANTE</h1>
+        <h1 className="font-sans font-black text-5xl tracking-tight text-stark mb-2">ANTE</h1>
         
         {/* Tagline with decorative lines */}
-        <div className="flex items-center gap-3 mt-2 opacity-0 animate-fade-in" style={{ animationDelay: '400ms', animationFillMode: 'forwards' }}>
-          <div className="w-8 h-[1px] bg-ghost"></div>
-          <p className="text-ghost text-xs font-sans uppercase tracking-[0.2em]">Place Your Courage</p>
-          <div className="w-8 h-[1px] bg-ghost"></div>
+        <div className="flex items-center gap-3 mt-1">
+          <div className="w-6 h-[1px] bg-steel"></div>
+          <p className="text-steel text-xs font-sans uppercase tracking-[0.3em]">Place Your Courage</p>
+          <div className="w-6 h-[1px] bg-steel"></div>
         </div>
       </div>
 
-      {/* Quote Box */}
+      {/* Philosophy Text */}
       <div 
-        className="mt-12 opacity-0 animate-slide-up"
-        style={{ animationDelay: '600ms', animationFillMode: 'forwards' }}
+        className="mt-12 text-center opacity-0 animate-fade-in"
+        style={{ animationDelay: '400ms', animationFillMode: 'forwards' }}
       >
-        <div className="border border-steel p-6">
-          <p className="text-ghost text-sm font-sans leading-relaxed text-center">
-            Courage is not the absence of fear, but the willingness to act despite it.
-          </p>
-        </div>
-      </div>
-
-      {/* Stats Section */}
-      <div 
-        className="mt-10 opacity-0 animate-slide-up"
-        style={{ animationDelay: '900ms', animationFillMode: 'forwards' }}
-      >
-        <div className="grid grid-cols-3 gap-3">
-          {/* Members */}
-          <div className="border border-steel p-4 text-center">
-            <p className="font-mono font-bold text-2xl text-stark">1K+</p>
-            <p className="text-ghost text-xs font-sans uppercase tracking-wider mt-1">Members</p>
-          </div>
-          
-          {/* Risks */}
-          <div className="border border-steel p-4 text-center">
-            <p className="font-mono font-bold text-2xl text-stark">50K+</p>
-            <p className="text-ghost text-xs font-sans uppercase tracking-wider mt-1">Risks</p>
-          </div>
-          
-          {/* Accuracy */}
-          <div className="border border-steel p-4 text-center">
-            <p className="font-mono font-bold text-2xl text-stark">78%</p>
-            <p className="text-ghost text-xs font-sans uppercase tracking-wider mt-1">Accuracy</p>
-          </div>
-        </div>
+        <p className="text-ghost text-lg font-sans leading-relaxed">Track your risks.</p>
+        <p className="text-ghost text-lg font-sans leading-relaxed mt-1">Build your courage.</p>
+        <p className="text-ghost text-lg font-sans leading-relaxed mt-1">Trust your intuition.</p>
       </div>
 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Footer - Enter Button */}
+      {/* Loading Indicator */}
       <div 
-        className="mt-8 opacity-0 animate-slide-up"
-        style={{ animationDelay: '1200ms', animationFillMode: 'forwards' }}
+        className="flex flex-col items-center gap-3 mb-4 opacity-0 animate-fade-in"
+        style={{ animationDelay: '800ms', animationFillMode: 'forwards' }}
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-ghost animate-pulse"></div>
+          <div className="w-2 h-2 bg-ghost animate-pulse" style={{ animationDelay: '200ms' }}></div>
+          <div className="w-2 h-2 bg-ghost animate-pulse" style={{ animationDelay: '400ms' }}></div>
+        </div>
+        <span className="text-xs font-sans text-steel uppercase tracking-[0.2em]">Initializing</span>
+      </div>
+
+      {/* Stats Section */}
+      <div 
+        className="w-full opacity-0 animate-slide-up"
+        style={{ animationDelay: '600ms', animationFillMode: 'forwards' }}
+      >
+        <div className="border border-steel grid grid-cols-3 divide-x divide-steel">
+          {/* Members */}
+          <div className="p-4 text-center">
+            <p className="font-mono font-bold text-2xl text-stark">1K+</p>
+            <p className="text-steel text-xs font-sans uppercase tracking-wider mt-1">Members</p>
+          </div>
+          
+          {/* Risks */}
+          <div className="p-4 text-center">
+            <p className="font-mono font-bold text-2xl text-stark">50K+</p>
+            <p className="text-steel text-xs font-sans uppercase tracking-wider mt-1">Risks</p>
+          </div>
+          
+          {/* Accuracy */}
+          <div className="p-4 text-center">
+            <p className="font-mono font-bold text-2xl text-stark">78%</p>
+            <p className="text-steel text-xs font-sans uppercase tracking-wider mt-1">Accuracy</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer - Get Started Button */}
+      <div 
+        className="w-full mt-6 opacity-0 animate-slide-up"
+        style={{ animationDelay: '1000ms', animationFillMode: 'forwards' }}
       >
         <button
-          onClick={handleEnterArena}
+          onClick={handleGetStarted}
           disabled={loading}
-          className="w-full bg-stark text-void font-sans font-bold text-sm uppercase tracking-wider py-4 px-6 hover:bg-ghost transition-colors duration-200 disabled:opacity-50"
+          className="w-full bg-stark text-void font-sans font-bold text-base uppercase tracking-wider py-5 hover:bg-ghost transition-colors duration-200 disabled:opacity-50"
         >
-          ENTER THE ARENA
+          GET STARTED
         </button>
+        <p className="text-steel text-xs font-sans text-center mt-4 tracking-wide">Tap to enter The Arena</p>
       </div>
     </div>
   );
