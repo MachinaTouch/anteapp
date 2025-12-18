@@ -1,14 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings, Filter, Brain, Trophy, Lightbulb, Flame, ChevronRight } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+
+interface SettledRisk {
+  id: string;
+  description: string;
+  outcome: string;
+  forecast: string;
+  xp_earned: number;
+  settled_at: string;
+}
 
 export default function Ledger() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeHistoryFilter, setActiveHistoryFilter] = useState<'all' | 'success' | 'failure'>('all');
+  const [settledRisks, setSettledRisks] = useState<SettledRisk[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSettledRisks = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('risks')
+        .select('id, description, outcome, forecast, xp_earned, settled_at')
+        .eq('user_id', user.id)
+        .eq('status', 'settled')
+        .order('settled_at', { ascending: false });
+
+      if (!error && data) {
+        setSettledRisks(data);
+      }
+      setLoading(false);
+    };
+
+    fetchSettledRisks();
+  }, [user]);
 
   const stats = {
     totalXp: 1250,
@@ -40,20 +76,10 @@ export default function Ledger() {
     { id: 28, success: true }, { id: 29, success: true }, { id: 30, success: true },
   ];
 
-  const completeHistory = [
-    { id: 1247, description: 'Asked my manager for a 15% raise', result: 'success', forecast: 'SUCCESS', xp: 150, date: '2 days ago' },
-    { id: 1246, description: 'Cold messaged 10 potential clients on LinkedIn', result: 'failure', forecast: 'FAILURE', xp: 150, date: '5 days ago' },
-    { id: 1245, description: 'Had the difficult conversation with my partner', result: 'success', forecast: 'SUCCESS', xp: 150, date: '1 week ago' },
-    { id: 1244, description: 'Submitted my resignation letter', result: 'success', forecast: 'FAILURE', xp: 100, date: '1 week ago' },
-    { id: 1243, description: 'Confronted my landlord about the broken heater', result: 'success', forecast: 'SUCCESS', xp: 150, date: '2 weeks ago' },
-    { id: 1242, description: 'Asked for a promotion after being passed over twice', result: 'failure', forecast: 'SUCCESS', xp: 100, date: '2 weeks ago' },
-    { id: 1241, description: 'Told my parents about my career change', result: 'success', forecast: 'FAILURE', xp: 100, date: '3 weeks ago' },
-    { id: 1240, description: 'Published my first blog post', result: 'success', forecast: 'SUCCESS', xp: 150, date: '3 weeks ago' },
-  ];
-
-  const filteredHistory = completeHistory.filter(item => {
+  const filteredHistory = settledRisks.filter(item => {
     if (activeHistoryFilter === 'all') return true;
-    return item.result === activeHistoryFilter;
+    if (activeHistoryFilter === 'success') return item.outcome === 'SUCCESS';
+    return item.outcome === 'FAILURE';
   });
 
   return (
@@ -297,34 +323,44 @@ export default function Ledger() {
           </div>
 
           {/* History List */}
-          {filteredHistory.map((item) => (
-            <div key={item.id} className="border border-border p-4 mb-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
-                  Risk #{item.id}
-                </span>
-                <span className={`font-mono text-xs font-bold ${
-                  item.result === 'success' ? 'text-foreground' : 'text-muted-foreground'
-                }`}>
-                  {item.result.toUpperCase()}
-                </span>
-              </div>
-              <p className="text-sm leading-relaxed mb-3">{item.description}</p>
-              <div className="flex items-center justify-between pt-3 border-t border-border">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Forecast</div>
-                    <div className="font-mono text-xs">{item.forecast}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Date</div>
-                    <div className="font-mono text-xs">{item.date}</div>
-                  </div>
-                </div>
-                <div className="font-mono text-lg font-bold">+{item.xp} XP</div>
-              </div>
+          {loading ? (
+            <div className="border border-border p-4 text-center text-muted-foreground">
+              Loading history...
             </div>
-          ))}
+          ) : filteredHistory.length === 0 ? (
+            <div className="border border-border p-4 text-center text-muted-foreground">
+              No settled risks yet.
+            </div>
+          ) : (
+            filteredHistory.map((item, index) => (
+              <div key={item.id} className="border border-border p-4 mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
+                    Risk #{settledRisks.length - index}
+                  </span>
+                  <span className={`font-mono text-xs font-bold ${
+                    item.outcome === 'SUCCESS' ? 'text-foreground' : 'text-muted-foreground'
+                  }`}>
+                    {item.outcome}
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed mb-3">{item.description}</p>
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Forecast</div>
+                      <div className="font-mono text-xs">{item.forecast}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Date</div>
+                      <div className="font-mono text-xs">{item.settled_at ? format(new Date(item.settled_at), 'MMM d, yyyy') : '-'}</div>
+                    </div>
+                  </div>
+                  <div className="font-mono text-lg font-bold">+{item.xp_earned || 0} XP</div>
+                </div>
+              </div>
+            ))
+          )}
         </section>
       </main>
 
