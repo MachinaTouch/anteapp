@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Lightbulb, AlertCircle } from 'lucide-react';
+import { X, Lightbulb, AlertCircle, Eye, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
 
 const CATEGORIES = [
   { id: 'career', label: 'Career', icon: '💼' },
@@ -22,6 +23,7 @@ export default function NewRisk() {
   const [forecast, setForecast] = useState<'SUCCESS' | 'FAILURE' | null>(null);
   const [deadline, setDeadline] = useState('3');
   const [category, setCategory] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const charCount = description.length;
@@ -58,6 +60,7 @@ export default function NewRisk() {
         category,
         deadline_days: parseInt(deadline),
         status: 'active',
+        is_public: isPublic,
       });
 
       if (error) throw error;
@@ -217,6 +220,33 @@ export default function NewRisk() {
                   <div className="font-mono text-sm font-bold">{days}D</div>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Privacy Toggle */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-1 bg-signal"></div>
+              <label className="block text-xs uppercase tracking-wider text-muted-foreground font-semibold">Privacy</label>
+            </div>
+            <div className="border border-border p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {isPublic ? (
+                  <Eye className="w-5 h-5 text-foreground" />
+                ) : (
+                  <Lock className="w-5 h-5 text-muted-foreground" />
+                )}
+                <div>
+                  <div className="text-sm font-medium">Post to Society?</div>
+                  <div className="text-xs text-muted-foreground">
+                    {isPublic ? 'Visible to all members' : 'Only you can see this'}
+                  </div>
+                </div>
+              </div>
+              <Switch
+                checked={isPublic}
+                onCheckedChange={setIsPublic}
+              />
             </div>
           </div>
 
