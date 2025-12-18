@@ -1,8 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, MoreVertical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from 'date-fns';
+
+interface Risk {
+  id: string;
+  description: string;
+  forecast: string;
+  created_at: string;
+}
 
 export default function Settlement() {
   const navigate = useNavigate();
@@ -14,15 +22,50 @@ export default function Settlement() {
   const [loading, setLoading] = useState(false);
   const [showXpAnimation, setShowXpAnimation] = useState(false);
   const [earnedXp, setEarnedXp] = useState(0);
+  const [risk, setRisk] = useState<Risk | null>(null);
+  const [fetchingRisk, setFetchingRisk] = useState(true);
 
-  // Demo risk data
-  const risk = {
-    id: id,
-    number: 1247,
-    description: 'Ask my manager for a 15% raise during tomorrow\'s quarterly review meeting',
-    forecast: 'SUCCESS',
-    placedAt: '2 days ago',
-  };
+  useEffect(() => {
+    const fetchRisk = async () => {
+      if (!id) return;
+      
+      setFetchingRisk(true);
+      const { data, error } = await supabase
+        .from('risks')
+        .select('id, description, forecast, created_at')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load risk data',
+          variant: 'destructive',
+        });
+        navigate('/arena');
+        return;
+      }
+      
+      if (!data) {
+        toast({
+          title: 'Not Found',
+          description: 'Risk not found',
+          variant: 'destructive',
+        });
+        navigate('/arena');
+        return;
+      }
+      
+      setRisk(data);
+      setFetchingRisk(false);
+    };
+    
+    fetchRisk();
+  }, [id, navigate, toast]);
+
+  const placedAt = risk?.created_at 
+    ? formatDistanceToNow(new Date(risk.created_at), { addSuffix: true })
+    : '';
 
   const handleSubmit = async () => {
     if (!outcome || !result || !intuition) {
@@ -75,6 +118,18 @@ export default function Settlement() {
     }
   };
 
+  if (fetchingRisk) {
+    return (
+      <div className="max-w-md mx-auto min-h-screen bg-background flex items-center justify-center">
+        <div className="w-1 h-1 bg-foreground animate-pulse"></div>
+      </div>
+    );
+  }
+
+  if (!risk) {
+    return null;
+  }
+
   return (
     <div className="max-w-md mx-auto min-h-screen bg-background relative">
       <header className="fixed top-0 left-0 right-0 max-w-md mx-auto bg-background border-b border-border z-50">
@@ -93,13 +148,13 @@ export default function Settlement() {
         <section className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-1 h-1 bg-signal"></div>
-            <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">Risk #{risk.number}</span>
+            <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">Risk #{risk.id.slice(0, 8).toUpperCase()}</span>
           </div>
           <p className="text-lg font-medium leading-relaxed mb-4">{risk.description}</p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
-            <span>Placed: {risk.placedAt}</span>
+            <span>Placed: {placedAt}</span>
             <span>•</span>
-            <span>Forecast: {risk.forecast}</span>
+            <span>Forecast: {risk.forecast?.toUpperCase() || 'N/A'}</span>
           </div>
         </section>
 
