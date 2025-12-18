@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight, Filter, Brain } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -17,34 +17,32 @@ interface Risk {
 
 export default function Arena() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [risks, setRisks] = useState<Risk[]>([]);
   const [stats, setStats] = useState({ active: 0, settled: 0, winRate: 0 });
   const [totalXp, setTotalXp] = useState(1250);
   const [level, setLevel] = useState(12);
 
-  useEffect(() => {
-    if (user) {
-      fetchRisks();
-    }
-  }, [user]);
-
-  const fetchRisks = async () => {
+  const fetchRisks = useCallback(async () => {
+    if (!user?.id) return;
+    
     // Fetch active risks
-    const { data: activeData, error: activeError } = await supabase
+    const { data: activeData } = await supabase
       .from('risks')
       .select('*')
-      .eq('user_id', user?.id)
+      .eq('user_id', user.id)
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 
     // Fetch settled risks for stats and recent settlements
-    const { data: settledData, error: settledError } = await supabase
+    const { data: settledData } = await supabase
       .from('risks')
       .select('*')
-      .eq('user_id', user?.id)
+      .eq('user_id', user.id)
       .eq('status', 'settled')
       .order('settled_at', { ascending: false });
+
     const activeRisks = activeData || [];
     const settledRisks = settledData || [];
     const allRisks = [...activeRisks, ...settledRisks];
@@ -58,7 +56,15 @@ export default function Arena() {
       settled,
       winRate: settled > 0 ? Math.round((wins / settled) * 100) : 0
     });
-  };
+  }, [user?.id]);
+
+  // Refetch when navigating back to this page
+  useEffect(() => {
+    if (user) {
+      fetchRisks();
+    }
+  }, [user, location.key, fetchRisks]);
+
 
   const getTimeAgo = (date: string) => {
     const diff = Date.now() - new Date(date).getTime();
