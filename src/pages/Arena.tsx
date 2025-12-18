@@ -30,23 +30,34 @@ export default function Arena() {
   }, [user]);
 
   const fetchRisks = async () => {
-    const { data, error } = await supabase
+    // Fetch active risks
+    const { data: activeData, error: activeError } = await supabase
       .from('risks')
       .select('*')
       .eq('user_id', user?.id)
+      .eq('status', 'active')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setRisks(data);
-      const active = data.filter(r => r.status === 'active').length;
-      const settled = data.filter(r => r.status === 'settled').length;
-      const wins = data.filter(r => r.result === 'success').length;
-      setStats({
-        active,
-        settled,
-        winRate: settled > 0 ? Math.round((wins / settled) * 100) : 0
-      });
-    }
+    // Fetch settled risks for stats and recent settlements
+    const { data: settledData, error: settledError } = await supabase
+      .from('risks')
+      .select('*')
+      .eq('user_id', user?.id)
+      .eq('status', 'settled')
+      .order('settled_at', { ascending: false });
+    const activeRisks = activeData || [];
+    const settledRisks = settledData || [];
+    const allRisks = [...activeRisks, ...settledRisks];
+
+    setRisks(allRisks);
+    const active = activeRisks.length;
+    const settled = settledRisks.length;
+    const wins = settledRisks.filter(r => r.result === 'success').length;
+    setStats({
+      active,
+      settled,
+      winRate: settled > 0 ? Math.round((wins / settled) * 100) : 0
+    });
   };
 
   const getTimeAgo = (date: string) => {
