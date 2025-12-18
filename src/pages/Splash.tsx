@@ -34,36 +34,36 @@ export default function Splash() {
         
         {/* Tagline with decorative lines */}
         <div className="flex items-center gap-3 mt-1">
-          <div className="w-6 h-[1px] bg-steel"></div>
-          <p className="text-steel text-xs font-sans uppercase tracking-[0.3em]">Place Your Courage</p>
-          <div className="w-6 h-[1px] bg-steel"></div>
+          <div className="w-6 h-[1px]" style={{ backgroundColor: '#666666' }}></div>
+          <p className="text-xs font-sans uppercase tracking-[0.3em]" style={{ color: '#888888' }}>Place Your Courage</p>
+          <div className="w-6 h-[1px]" style={{ backgroundColor: '#666666' }}></div>
         </div>
       </div>
 
-      {/* Philosophy Text */}
+      {/* Philosophy Text - Light Grey (#CCCCCC) */}
       <div 
         className="mt-12 text-center opacity-0 animate-fade-in"
         style={{ animationDelay: '400ms', animationFillMode: 'forwards' }}
       >
-        <p className="text-ghost text-lg font-sans leading-relaxed">Track your risks.</p>
-        <p className="text-ghost text-lg font-sans leading-relaxed mt-1">Build your courage.</p>
-        <p className="text-ghost text-lg font-sans leading-relaxed mt-1">Trust your intuition.</p>
+        <p className="text-lg font-sans leading-relaxed" style={{ color: '#CCCCCC' }}>Track your risks.</p>
+        <p className="text-lg font-sans leading-relaxed mt-1" style={{ color: '#CCCCCC' }}>Build your courage.</p>
+        <p className="text-lg font-sans leading-relaxed mt-1" style={{ color: '#CCCCCC' }}>Trust your intuition.</p>
       </div>
 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Loading Indicator */}
+      {/* Loading Indicator - Light Grey (#CCCCCC) */}
       <div 
         className="flex flex-col items-center gap-3 mb-4 opacity-0 animate-fade-in"
         style={{ animationDelay: '800ms', animationFillMode: 'forwards' }}
       >
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-ghost animate-pulse"></div>
-          <div className="w-2 h-2 bg-ghost animate-pulse" style={{ animationDelay: '200ms' }}></div>
-          <div className="w-2 h-2 bg-ghost animate-pulse" style={{ animationDelay: '400ms' }}></div>
+          <div className="w-2 h-2 animate-pulse" style={{ backgroundColor: '#CCCCCC' }}></div>
+          <div className="w-2 h-2 animate-pulse" style={{ backgroundColor: '#CCCCCC', animationDelay: '200ms' }}></div>
+          <div className="w-2 h-2 animate-pulse" style={{ backgroundColor: '#CCCCCC', animationDelay: '400ms' }}></div>
         </div>
-        <span className="text-xs font-sans text-steel uppercase tracking-[0.2em]">Initializing</span>
+        <span className="text-xs font-sans uppercase tracking-[0.2em]" style={{ color: '#CCCCCC' }}>Initializing</span>
       </div>
 
       {/* Stats Section */}
@@ -75,19 +75,19 @@ export default function Splash() {
           {/* Members */}
           <div className="p-4 text-center">
             <p className="font-mono font-bold text-2xl text-stark">1K+</p>
-            <p className="text-steel text-xs font-sans uppercase tracking-wider mt-1">Members</p>
+            <p className="text-xs font-sans uppercase tracking-wider mt-1" style={{ color: '#CCCCCC' }}>Members</p>
           </div>
           
           {/* Risks */}
           <div className="p-4 text-center">
             <p className="font-mono font-bold text-2xl text-stark">50K+</p>
-            <p className="text-steel text-xs font-sans uppercase tracking-wider mt-1">Risks</p>
+            <p className="text-xs font-sans uppercase tracking-wider mt-1" style={{ color: '#CCCCCC' }}>Risks</p>
           </div>
           
           {/* Accuracy */}
           <div className="p-4 text-center">
             <p className="font-mono font-bold text-2xl text-stark">78%</p>
-            <p className="text-steel text-xs font-sans uppercase tracking-wider mt-1">Accuracy</p>
+            <p className="text-xs font-sans uppercase tracking-wider mt-1" style={{ color: '#CCCCCC' }}>Accuracy</p>
           </div>
         </div>
       </div>
@@ -104,7 +104,7 @@ export default function Splash() {
         >
           GET STARTED
         </button>
-        <p className="text-steel text-xs font-sans text-center mt-4 tracking-wide">Tap to enter The Arena</p>
+        <p className="text-xs font-sans text-center mt-4 tracking-wide" style={{ color: '#CCCCCC' }}>Tap to enter The Arena</p>
       </div>
     </div>
   );

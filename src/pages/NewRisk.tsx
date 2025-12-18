@@ -1,9 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, Lightbulb, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+
+const CATEGORIES = [
+  { id: 'career', label: 'Career', icon: '💼' },
+  { id: 'relationships', label: 'Relationships', icon: '💬' },
+  { id: 'personal', label: 'Personal Growth', icon: '🌱' },
+  { id: 'financial', label: 'Financial', icon: '💰' },
+  { id: 'health', label: 'Health', icon: '🏃' },
+  { id: 'creative', label: 'Creative', icon: '🎨' },
+];
 
 export default function NewRisk() {
   const navigate = useNavigate();
@@ -12,16 +21,28 @@ export default function NewRisk() {
   const [description, setDescription] = useState('');
   const [forecast, setForecast] = useState<'SUCCESS' | 'FAILURE' | null>(null);
   const [deadline, setDeadline] = useState('3');
+  const [category, setCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const charCount = description.length;
-  const maxChars = 280;
+  const maxChars = 500;
+  const minChars = 20;
+  const isDescriptionTooShort = charCount > 0 && charCount < minChars;
 
   const handleSubmit = async () => {
     if (!description || !forecast) {
       toast({
         title: 'Incomplete',
         description: 'Please complete all fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (charCount < minChars) {
+      toast({
+        title: 'Too Short',
+        description: `Please describe your risk in at least ${minChars} characters`,
         variant: 'destructive',
       });
       return;
@@ -34,6 +55,7 @@ export default function NewRisk() {
         user_id: user?.id,
         description,
         forecast,
+        category,
         deadline_days: parseInt(deadline),
         status: 'active',
       });
@@ -70,6 +92,46 @@ export default function NewRisk() {
 
       <main className="pt-[73px]">
         <section className="px-6 py-8">
+          {/* Tip Box */}
+          <div className="border border-border p-4 mb-8 bg-secondary/20">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-sm mb-1">Tips for a Good Risk</h4>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>• Be specific about what you're doing</li>
+                  <li>• Include when you'll take action</li>
+                  <li>• Make it measurable - how will you know it's done?</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Selector */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-1 bg-signal"></div>
+              <label className="block text-xs uppercase tracking-wider text-muted-foreground font-semibold">Category</label>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setCategory(category === cat.id ? null : cat.id)}
+                  className={`border p-3 text-center transition-all ${
+                    category === cat.id
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'border-border text-foreground hover:border-foreground'
+                  }`}
+                >
+                  <div className="text-lg mb-1">{cat.icon}</div>
+                  <div className="text-xs font-mono">{cat.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Risk Description */}
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1 h-1 bg-signal"></div>
@@ -81,14 +143,28 @@ export default function NewRisk() {
               placeholder="Describe the risk you're taking..."
               className="w-full h-32 bg-transparent border border-border p-4 text-foreground placeholder:text-muted-foreground resize-none focus:border-foreground focus:outline-none transition-colors"
             />
-            <div className="flex justify-between mt-2">
-              <span className="text-xs text-muted-foreground font-mono">Be specific. Be honest.</span>
-              <span className={`text-xs font-mono ${charCount > maxChars * 0.9 ? 'text-signal' : 'text-muted-foreground'}`}>
+            <div className="flex justify-between items-center mt-2">
+              <div className="flex items-center gap-2">
+                {isDescriptionTooShort && (
+                  <>
+                    <AlertCircle className="w-3 h-3 text-signal" />
+                    <span className="text-xs text-signal font-mono">Min {minChars} characters</span>
+                  </>
+                )}
+                {!isDescriptionTooShort && charCount > 0 && (
+                  <span className="text-xs text-muted-foreground font-mono">Be specific. Be honest.</span>
+                )}
+              </div>
+              <span className={`text-xs font-mono ${
+                isDescriptionTooShort ? 'text-signal' : 
+                charCount > maxChars * 0.9 ? 'text-signal' : 'text-muted-foreground'
+              }`}>
                 {charCount}/{maxChars}
               </span>
             </div>
           </div>
 
+          {/* Forecast */}
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1 h-1 bg-signal"></div>
@@ -121,6 +197,7 @@ export default function NewRisk() {
             </div>
           </div>
 
+          {/* Deadline */}
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1 h-1 bg-signal"></div>
@@ -143,6 +220,7 @@ export default function NewRisk() {
             </div>
           </div>
 
+          {/* Potential XP */}
           <div className="border border-border p-5 mb-8">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Potential XP</span>
@@ -161,7 +239,7 @@ export default function NewRisk() {
 
           <button
             onClick={handleSubmit}
-            disabled={!description || !forecast || loading}
+            disabled={!description || !forecast || loading || isDescriptionTooShort}
             className="w-full border border-foreground bg-foreground text-background py-4 font-bold text-sm uppercase tracking-wider hover:bg-transparent hover:text-foreground transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Placing...' : 'Place Your Ante'}

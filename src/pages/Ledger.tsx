@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Filter, Brain, Trophy, Lightbulb, Flame } from 'lucide-react';
+import { Settings, Filter, Brain, Trophy, Lightbulb, Flame, ChevronRight } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +39,22 @@ export default function Ledger() {
     { id: 25, success: true }, { id: 26, success: true }, { id: 27, success: true },
     { id: 28, success: true }, { id: 29, success: true }, { id: 30, success: true },
   ];
+
+  const completeHistory = [
+    { id: 1247, description: 'Asked my manager for a 15% raise', result: 'success', forecast: 'SUCCESS', xp: 150, date: '2 days ago' },
+    { id: 1246, description: 'Cold messaged 10 potential clients on LinkedIn', result: 'failure', forecast: 'FAILURE', xp: 150, date: '5 days ago' },
+    { id: 1245, description: 'Had the difficult conversation with my partner', result: 'success', forecast: 'SUCCESS', xp: 150, date: '1 week ago' },
+    { id: 1244, description: 'Submitted my resignation letter', result: 'success', forecast: 'FAILURE', xp: 100, date: '1 week ago' },
+    { id: 1243, description: 'Confronted my landlord about the broken heater', result: 'success', forecast: 'SUCCESS', xp: 150, date: '2 weeks ago' },
+    { id: 1242, description: 'Asked for a promotion after being passed over twice', result: 'failure', forecast: 'SUCCESS', xp: 100, date: '2 weeks ago' },
+    { id: 1241, description: 'Told my parents about my career change', result: 'success', forecast: 'FAILURE', xp: 100, date: '3 weeks ago' },
+    { id: 1240, description: 'Published my first blog post', result: 'success', forecast: 'SUCCESS', xp: 150, date: '3 weeks ago' },
+  ];
+
+  const filteredHistory = completeHistory.filter(item => {
+    if (activeHistoryFilter === 'all') return true;
+    return item.result === activeHistoryFilter;
+  });
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-background relative pb-20">
@@ -223,7 +239,7 @@ export default function Ledger() {
         </section>
 
         {/* Risk History Visualization */}
-        <section className="py-8">
+        <section className="py-8 border-b border-border">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-black text-2xl tracking-tight">RISK HISTORY</h3>
             <button className="text-muted-foreground hover:text-foreground transition-colors">
@@ -255,6 +271,60 @@ export default function Ledger() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Complete History List */}
+        <section className="py-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-black text-2xl tracking-tight">COMPLETE HISTORY</h3>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            {(['all', 'success', 'failure'] as const).map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setActiveHistoryFilter(filter)}
+                className={`py-2 text-xs font-mono uppercase tracking-wider border transition-all ${
+                  activeHistoryFilter === filter
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-border text-muted-foreground hover:border-foreground'
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+
+          {/* History List */}
+          {filteredHistory.map((item) => (
+            <div key={item.id} className="border border-border p-4 mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
+                  Risk #{item.id}
+                </span>
+                <span className={`font-mono text-xs font-bold ${
+                  item.result === 'success' ? 'text-foreground' : 'text-muted-foreground'
+                }`}>
+                  {item.result.toUpperCase()}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed mb-3">{item.description}</p>
+              <div className="flex items-center justify-between pt-3 border-t border-border">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Forecast</div>
+                    <div className="font-mono text-xs">{item.forecast}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Date</div>
+                    <div className="font-mono text-xs">{item.date}</div>
+                  </div>
+                </div>
+                <div className="font-mono text-lg font-bold">+{item.xp} XP</div>
+              </div>
+            </div>
+          ))}
         </section>
       </main>
 
