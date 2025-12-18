@@ -89,7 +89,7 @@ export default function Settlement() {
         .from('risks')
         .update({
           status: 'settled',
-          result,
+          outcome: result,
           outcome_notes: outcome,
           intuition_correct: intuition === 'yes',
           xp_earned: xp,
