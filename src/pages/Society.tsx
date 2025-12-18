@@ -26,8 +26,11 @@ interface LeaderboardUser {
   username: string | null;
   avatar_url: string | null;
   xp_total: number;
-  level: number;
 }
+
+const calculateLevel = (xpTotal: number): number => {
+  return Math.floor(Math.sqrt(xpTotal / 50)) + 1;
+};
 
 export default function Society() {
   const { user } = useAuth();
@@ -137,7 +140,7 @@ export default function Society() {
       // Fetch leaderboard
       const { data: leaderboardData } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, xp_total, level')
+        .select('id, username, avatar_url, xp_total')
         .order('xp_total', { ascending: false })
         .limit(50);
 
@@ -405,7 +408,7 @@ export default function Society() {
                             {entry.username || 'Anonymous'}
                             {entry.id === user?.id && <span className="text-muted-foreground ml-2">(You)</span>}
                           </div>
-                          <div className="text-xs text-muted-foreground">Level {entry.level}</div>
+                          <div className="text-xs text-muted-foreground">Level {calculateLevel(entry.xp_total)}</div>
                         </div>
                       </div>
                     </div>
