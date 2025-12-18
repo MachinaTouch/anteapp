@@ -64,10 +64,10 @@ export default function Arena() {
     const settled = settledRisks.length;
     const wins = settledRisks.filter(r => r.outcome === 'SUCCESS').length;
     
-    // Calculate total XP and level
+    // Calculate total XP and level (progressive formula)
     const xp = settledRisks.reduce((sum, r) => sum + (r.xp_earned || 0), 0);
     setTotalXp(xp);
-    setLevel(Math.floor(xp / 100) + 1);
+    setLevel(Math.floor(Math.sqrt(xp / 50)) + 1);
 
     // Calculate intuition stats using intuition_correct boolean
     const correctPredictions = settledRisks.filter(r => r.intuition_correct === true).length;
@@ -167,13 +167,25 @@ export default function Arena() {
               <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Courage Index</span>
               <span className="font-mono text-sm">Level {level}</span>
             </div>
-            <div className="relative h-2 bg-secondary mb-2">
-              <div className="absolute left-0 top-0 h-full bg-foreground" style={{ width: '65%' }}></div>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground font-mono">
-              <span>650 XP</span>
-              <span>1000 XP</span>
-            </div>
+            {(() => {
+              // Calculate XP thresholds for current and next level using progressive formula
+              const currentLevelMinXp = level > 1 ? (level - 1) * (level - 1) * 50 : 0;
+              const nextLevelMinXp = level * level * 50;
+              const progressXp = totalXp - currentLevelMinXp;
+              const xpNeededForLevel = nextLevelMinXp - currentLevelMinXp;
+              const progressPercent = Math.min(100, Math.round((progressXp / xpNeededForLevel) * 100));
+              return (
+                <>
+                  <div className="relative h-2 bg-secondary mb-2">
+                    <div className="absolute left-0 top-0 h-full bg-foreground" style={{ width: `${progressPercent}%` }}></div>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground font-mono">
+                    <span>{totalXp.toLocaleString()} XP</span>
+                    <span>{nextLevelMinXp.toLocaleString()} XP</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </section>
 
