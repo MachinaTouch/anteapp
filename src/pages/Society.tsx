@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Lock, Star, Heart } from 'lucide-react';
+import { Lock, Star, Heart, Loader2 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+
+// RevenueCat Public API Key (publishable - safe in code)
+const REVENUECAT_PUBLIC_KEY = 'test_newXyKrkBacxtwhoKnxjfBpKjDF';
 
 interface FeedRisk {
   id: string;
@@ -34,10 +38,12 @@ const calculateLevel = (xpTotal: number): number => {
 
 export default function Society() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isPro, setIsPro] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeTab, setActiveTab] = useState<'feed' | 'leaderboard'>('feed');
   const [loading, setLoading] = useState(true);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [feedRisks, setFeedRisks] = useState<FeedRisk[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [featuredRisk, setFeaturedRisk] = useState<FeedRisk | null>(null);
@@ -197,9 +203,68 @@ export default function Society() {
     }
   };
 
+  // Mock RevenueCat purchase subscription
+  const purchaseSubscription = async (): Promise<{ success: boolean; error?: string }> => {
+    // In web preview, we mock the RevenueCat SDK
+    // This simulates the native purchase flow that will be added in Xcode
+    console.log('[RevenueCat Mock] Initiating purchase with key:', REVENUECAT_PUBLIC_KEY);
+    
+    // Simulate network delay (2 seconds)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Simulate success response from RevenueCat
+    console.log('[RevenueCat Mock] Purchase successful');
+    return { success: true };
+  };
+
   const handleStartTrial = async () => {
-    setShowPaywall(false);
-    setIsPro(true);
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Please sign in to start your trial",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPurchaseLoading(true);
+
+    try {
+      // Call mocked RevenueCat purchase
+      const result = await purchaseSubscription();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Purchase failed');
+      }
+
+      // Update Supabase profile to set is_pro = true
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ is_pro: true })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Show success toast
+      toast({
+        title: "Welcome to the Society!",
+        description: "Your 7-day free trial has started",
+      });
+
+      // Reload page to reveal hidden content
+      window.location.reload();
+
+    } catch (error) {
+      console.error('Purchase error:', error);
+      toast({
+        title: "Purchase Failed",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+      setPurchaseLoading(false);
+    }
   };
 
   const getDisplayName = (profiles: { username: string | null } | null) => {
@@ -458,9 +523,17 @@ export default function Society() {
 
             <button
               onClick={handleStartTrial}
-              className="w-full border border-foreground bg-foreground text-background py-4 font-bold text-sm uppercase tracking-wider hover:bg-transparent hover:text-foreground transition-all mb-4"
+              disabled={purchaseLoading}
+              className="w-full border border-foreground bg-foreground text-background py-4 font-bold text-sm uppercase tracking-wider hover:bg-transparent hover:text-foreground transition-all mb-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Start 7-Day Free Trial
+              {purchaseLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Start 7-Day Free Trial'
+              )}
             </button>
 
             <button
