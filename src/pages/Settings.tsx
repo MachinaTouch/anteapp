@@ -59,20 +59,20 @@ export default function SettingsPage() {
     {
       title: 'Account',
       items: [
-        { icon: User, label: 'Profile', description: 'Edit your profile information' },
-        { icon: Bell, label: 'Notifications', description: 'Manage notification preferences' },
+        { icon: User, label: 'Profile', description: 'Edit your profile information', path: '/settings/profile' },
+        { icon: Bell, label: 'Notifications', description: 'Manage notification preferences', path: '/settings/notifications' },
       ],
     },
     {
       title: 'Privacy & Security',
       items: [
-        { icon: Shield, label: 'Privacy', description: 'Control your data and visibility' },
+        { icon: Shield, label: 'Privacy', description: 'Control your data and visibility', path: '/settings/privacy' },
       ],
     },
     {
       title: 'Support',
       items: [
-        { icon: HelpCircle, label: 'Help Center', description: 'Get help and support' },
+        { icon: HelpCircle, label: 'Help Center', description: 'Get help and support', path: '/settings/help' },
       ],
     },
   ];
@@ -113,6 +113,7 @@ export default function SettingsPage() {
                 return (
                   <button
                     key={item.label}
+                    onClick={() => navigate(item.path)}
                     className="w-full flex items-center justify-between py-4 hover:bg-secondary/30 transition-colors -mx-2 px-2"
                   >
                     <div className="flex items-center gap-4">
