@@ -12,7 +12,7 @@ interface FeedRisk {
   created_at: string;
   xp_potential: number;
   status: string;
-  prediction: string;
+  forecast: string;
   profiles: {
     username: string | null;
     avatar_url: string | null;
@@ -80,7 +80,7 @@ export default function Society() {
           created_at,
           xp_potential,
           status,
-          prediction,
+          forecast,
           profiles:user_id (
             username,
             avatar_url
@@ -121,7 +121,7 @@ export default function Society() {
             created_at: risk.created_at,
             xp_potential: risk.xp_potential,
             status: risk.status,
-            prediction: risk.prediction,
+            forecast: risk.forecast,
             profiles: profileData as { username: string | null; avatar_url: string | null } | null,
             inspiration_count: countMap[risk.id] || 0,
             is_inspired: userInspiredSet.has(risk.id),
