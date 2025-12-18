@@ -1,14 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Lock, Star } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Society() {
+  const { user } = useAuth();
   const [isPro, setIsPro] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(true);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [activeTab, setActiveTab] = useState<'feed' | 'leaderboard'>('feed');
+  const [loading, setLoading] = useState(true);
 
-  const handleStartTrial = () => {
+  useEffect(() => {
+    const fetchProStatus = async () => {
+      if (!user) {
+        setLoading(false);
+        setShowPaywall(true);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_pro')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (data) {
+        setIsPro(data.is_pro === true);
+        setShowPaywall(data.is_pro !== true);
+      } else {
+        setShowPaywall(true);
+      }
+      setLoading(false);
+    };
+
+    fetchProStatus();
+  }, [user]);
+
+  const handleStartTrial = async () => {
+    // In a real app, this would trigger a payment flow
+    // For now, just close the paywall
     setShowPaywall(false);
     setIsPro(true);
   };
