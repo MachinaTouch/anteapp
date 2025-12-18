@@ -1,11 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, Filter, Brain, Trash2, Eye, Lock } from 'lucide-react';
+import { ChevronRight, Filter, Brain, Eye, Lock, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 interface Risk {
   id: string;
   description: string;
@@ -28,6 +43,8 @@ export default function Arena() {
   const [totalXp, setTotalXp] = useState(0);
   const [level, setLevel] = useState(1);
   const [intuitionStats, setIntuitionStats] = useState({ accuracy: 0, correct: 0, incorrect: 0, grade: '—' });
+  const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
+  const [editDescription, setEditDescription] = useState('');
 
   const getGrade = (accuracy: number): string => {
     if (accuracy >= 90) return 'A+';
@@ -108,16 +125,53 @@ export default function Arena() {
     return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
   };
 
-  const handleDeleteRisk = async (e: React.MouseEvent, riskId: string) => {
-    e.stopPropagation();
+  const handleDeleteRisk = async (riskId: string) => {
     if (!confirm('Are you sure you want to delete this risk?')) return;
     
     await supabase.from('risks').delete().eq('id', riskId);
+    toast({
+      title: "Risk Deleted",
+      description: "The risk has been removed",
+    });
     fetchRisks();
   };
 
-  const handleTogglePrivacy = async (e: React.MouseEvent, riskId: string, currentIsPublic: boolean) => {
-    e.stopPropagation();
+  const handleEditRisk = (risk: Risk) => {
+    setEditingRisk(risk);
+    setEditDescription(risk.description);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingRisk) return;
+    
+    const { error } = await supabase
+      .from('risks')
+      .update({ description: editDescription })
+      .eq('id', editingRisk.id);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update risk",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setRisks(prev => prev.map(r => 
+      r.id === editingRisk.id ? { ...r, description: editDescription } : r
+    ));
+    
+    toast({
+      title: "Risk Updated",
+      description: "Your changes have been saved",
+    });
+    
+    setEditingRisk(null);
+    setEditDescription('');
+  };
+
+  const handleTogglePrivacy = async (riskId: string, currentIsPublic: boolean) => {
     const newIsPublic = !currentIsPublic;
     
     const { error } = await supabase
@@ -281,7 +335,10 @@ export default function Arena() {
                         Risk #{1247 - index}
                       </span>
                       <button
-                        onClick={(e) => handleTogglePrivacy(e, risk.id, risk.is_public ?? false)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTogglePrivacy(risk.id, risk.is_public ?? false);
+                        }}
                         className="p-1 hover:bg-secondary rounded transition-colors"
                         title={risk.is_public ? "Make Private" : "Make Public"}
                       >
@@ -294,12 +351,32 @@ export default function Arena() {
                     </div>
                     <p className="text-sm leading-relaxed mb-3">{risk.description}</p>
                   </div>
-                  <button
-                    onClick={(e) => handleDeleteRisk(e, risk.id)}
-                    className="p-2 text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-background border border-border z-50">
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditRisk(risk);
+                      }}>
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-destructive focus:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRisk(risk.id);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <div className="flex items-center gap-4">
@@ -362,6 +439,31 @@ export default function Arena() {
           ))}
         </section>
       </main>
+
+      {/* Edit Risk Modal */}
+      <Dialog open={!!editingRisk} onOpenChange={(open) => !open && setEditingRisk(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Risk</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="Describe your risk..."
+              className="min-h-[100px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingRisk(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>
