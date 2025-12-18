@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Filter, Brain, Trophy, Lightbulb, ChevronRight } from 'lucide-react';
+import { Settings, Filter, Brain, Trophy, Lightbulb, ChevronRight, Trash2 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,36 +25,43 @@ export default function Ledger() {
   const [totalRisks, setTotalRisks] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchRisksData = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      // Fetch all risks count
-      const { count: allCount } = await supabase
-        .from('risks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      // Fetch settled risks with details
-      const { data: settledData, error } = await supabase
-        .from('risks')
-        .select('id, description, outcome, forecast, xp_earned, settled_at, intuition_correct')
-        .eq('user_id', user.id)
-        .eq('status', 'settled')
-        .order('settled_at', { ascending: false });
-
-      if (!error && settledData) {
-        setSettledRisks(settledData);
-      }
-      setTotalRisks(allCount || 0);
+  const fetchRisksData = async () => {
+    if (!user) {
       setLoading(false);
-    };
+      return;
+    }
 
+    // Fetch all risks count
+    const { count: allCount } = await supabase
+      .from('risks')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    // Fetch settled risks with details
+    const { data: settledData, error } = await supabase
+      .from('risks')
+      .select('id, description, outcome, forecast, xp_earned, settled_at, intuition_correct')
+      .eq('user_id', user.id)
+      .eq('status', 'settled')
+      .order('settled_at', { ascending: false });
+
+    if (!error && settledData) {
+      setSettledRisks(settledData);
+    }
+    setTotalRisks(allCount || 0);
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchRisksData();
   }, [user]);
+
+  const handleDeleteRisk = async (riskId: string) => {
+    if (!confirm('Are you sure you want to delete this risk?')) return;
+    
+    await supabase.from('risks').delete().eq('id', riskId);
+    fetchRisksData();
+  };
 
   // Calculate real stats from data
   const totalXp = settledRisks.reduce((sum, risk) => sum + (risk.xp_earned || 0), 0);
@@ -346,11 +353,19 @@ export default function Ledger() {
                   <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
                     Risk #{settledRisks.length - index}
                   </span>
-                  <span className={`font-mono text-xs font-bold ${
-                    item.outcome === 'SUCCESS' ? 'text-foreground' : 'text-muted-foreground'
-                  }`}>
-                    {item.outcome}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className={`font-mono text-xs font-bold ${
+                      item.outcome === 'SUCCESS' ? 'text-foreground' : 'text-muted-foreground'
+                    }`}>
+                      {item.outcome}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteRisk(item.id)}
+                      className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-sm leading-relaxed mb-3">{item.description}</p>
                 <div className="flex items-center justify-between pt-3 border-t border-border">
