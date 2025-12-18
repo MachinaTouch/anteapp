@@ -1,12 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Filter, Brain, Trophy, Lightbulb, ChevronRight, Trash2, Eye, Lock } from 'lucide-react';
+import { Settings, Filter, Brain, Trophy, Lightbulb, ChevronRight, Eye, Lock, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 interface SettledRisk {
   id: string;
@@ -27,6 +42,8 @@ export default function Ledger() {
   const [settledRisks, setSettledRisks] = useState<SettledRisk[]>([]);
   const [totalRisks, setTotalRisks] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [editingRisk, setEditingRisk] = useState<SettledRisk | null>(null);
+  const [editDescription, setEditDescription] = useState('');
 
   const fetchRisksData = async () => {
     if (!user) {
@@ -63,7 +80,46 @@ export default function Ledger() {
     if (!confirm('Are you sure you want to delete this risk?')) return;
     
     await supabase.from('risks').delete().eq('id', riskId);
+    toast({
+      title: "Risk Deleted",
+      description: "The risk has been removed",
+    });
     fetchRisksData();
+  };
+
+  const handleEditRisk = (risk: SettledRisk) => {
+    setEditingRisk(risk);
+    setEditDescription(risk.description);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingRisk) return;
+    
+    const { error } = await supabase
+      .from('risks')
+      .update({ description: editDescription })
+      .eq('id', editingRisk.id);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update risk",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSettledRisks(prev => prev.map(r => 
+      r.id === editingRisk.id ? { ...r, description: editDescription } : r
+    ));
+    
+    toast({
+      title: "Risk Updated",
+      description: "Your changes have been saved",
+    });
+    
+    setEditingRisk(null);
+    setEditDescription('');
   };
 
   const handleTogglePrivacy = async (riskId: string, currentIsPublic: boolean) => {
@@ -401,12 +457,26 @@ export default function Ledger() {
                         <Lock className="w-4 h-4 text-muted-foreground" />
                       )}
                     </button>
-                    <button
-                      onClick={() => handleDeleteRisk(item.id)}
-                      className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1 text-muted-foreground hover:text-foreground transition-colors">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-background border border-border z-50">
+                        <DropdownMenuItem onClick={() => handleEditRisk(item)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDeleteRisk(item.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed mb-3">{item.description}</p>
@@ -428,6 +498,31 @@ export default function Ledger() {
           )}
         </section>
       </main>
+
+      {/* Edit Risk Modal */}
+      <Dialog open={!!editingRisk} onOpenChange={(open) => !open && setEditingRisk(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Risk</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="Describe your risk..."
+              className="min-h-[100px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingRisk(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>
