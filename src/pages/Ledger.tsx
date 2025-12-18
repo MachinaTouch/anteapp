@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Filter, Brain, Trophy, Lightbulb, Flame, ChevronRight } from 'lucide-react';
+import { Settings, Filter, Brain, Trophy, Lightbulb, ChevronRight } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,17 +58,27 @@ export default function Ledger() {
 
   // Calculate real stats from data
   const totalXp = settledRisks.reduce((sum, risk) => sum + (risk.xp_earned || 0), 0);
-  const level = Math.floor(totalXp / 100) + 1;
+  const level = Math.floor(Math.sqrt(totalXp / 50)) + 1; // Progressive leveling formula
   const completedCount = settledRisks.length;
   const completionRate = totalRisks > 0 ? Math.round((completedCount / totalRisks) * 100) : 0;
-  const xpToNextLevel = 100 - (totalXp % 100);
-  const levelProgress = (totalXp % 100);
+  
+  // Progressive level XP thresholds
+  const currentLevelMinXp = level > 1 ? (level - 1) * (level - 1) * 50 : 0;
+  const nextLevelMinXp = level * level * 50;
+  const xpToNextLevel = nextLevelMinXp - totalXp;
+  const levelProgress = Math.min(100, Math.round(((totalXp - currentLevelMinXp) / (nextLevelMinXp - currentLevelMinXp)) * 100));
 
-  // Intuition Grade calculation
+  // Intuition stats (needed for XP breakdown)
   const correctPredictions = settledRisks.filter(r => r.intuition_correct === true).length;
   const incorrectPredictions = settledRisks.filter(r => r.intuition_correct === false).length;
   const totalPredictions = correctPredictions + incorrectPredictions;
   const intuitionAccuracy = totalPredictions > 0 ? Math.round((correctPredictions / totalPredictions) * 100) : 0;
+
+  // XP Breakdown calculation: Bonus XP = correct predictions * 50, Base XP = total - bonus
+  const bonusXp = correctPredictions * 50;
+  const baseXp = totalXp - bonusXp;
+  const baseXpPercent = totalXp > 0 ? Math.round((baseXp / totalXp) * 100) : 0;
+  const bonusXpPercent = totalXp > 0 ? Math.round((bonusXp / totalXp) * 100) : 0;
   
   const getGrade = (accuracy: number): string => {
     if (accuracy >= 90) return 'A+';
@@ -230,10 +240,10 @@ export default function Ledger() {
                     <div className="text-xs text-muted-foreground">From completing risks</div>
                   </div>
                 </div>
-                <div className="font-mono text-xl font-bold">{totalXp}</div>
+                <div className="font-mono text-xl font-bold">{baseXp.toLocaleString()}</div>
               </div>
               <div className="h-2 bg-secondary">
-                <div className="h-full bg-foreground" style={{ width: '100%' }}></div>
+                <div className="h-full bg-foreground" style={{ width: `${baseXpPercent}%` }}></div>
               </div>
             </div>
 
@@ -243,29 +253,13 @@ export default function Ledger() {
                   <Lightbulb className="w-5 h-5" />
                   <div>
                     <div className="text-sm font-bold">Intuition Bonus XP</div>
-                    <div className="text-xs text-muted-foreground">From correct forecasts</div>
+                    <div className="text-xs text-muted-foreground">From correct forecasts (+50 each)</div>
                   </div>
                 </div>
-                <div className="font-mono text-xl font-bold">—</div>
+                <div className="font-mono text-xl font-bold">{bonusXp.toLocaleString()}</div>
               </div>
               <div className="h-2 bg-secondary">
-                <div className="h-full bg-foreground" style={{ width: '0%' }}></div>
-              </div>
-            </div>
-
-            <div className="border border-border p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <Flame className="w-5 h-5" />
-                  <div>
-                    <div className="text-sm font-bold">Streak Multiplier</div>
-                    <div className="text-xs text-muted-foreground">From consistency</div>
-                  </div>
-                </div>
-                <div className="font-mono text-xl font-bold">—</div>
-              </div>
-              <div className="h-2 bg-secondary">
-                <div className="h-full bg-foreground" style={{ width: '0%' }}></div>
+                <div className="h-full bg-foreground" style={{ width: `${bonusXpPercent}%` }}></div>
               </div>
             </div>
           </div>
