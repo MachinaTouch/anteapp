@@ -9,6 +9,10 @@ const authSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
+const signUpSchema = authSchema.extend({
+  username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username must be less than 20 characters'),
+});
+
 export default function Auth() {
   const navigate = useNavigate();
   const { user, signIn, signUp } = useAuth();
@@ -16,6 +20,7 @@ export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [showContent, setShowContent] = useState(false);
 
@@ -33,7 +38,10 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const validation = authSchema.safeParse({ email, password });
+    const schema = isLogin ? authSchema : signUpSchema;
+    const dataToValidate = isLogin ? { email, password } : { email, password, username };
+    
+    const validation = schema.safeParse(dataToValidate);
     if (!validation.success) {
       toast({
         title: 'Validation Error',
@@ -51,7 +59,7 @@ export default function Auth() {
         if (error) throw error;
         navigate('/arena');
       } else {
-        const { error } = await signUp(email, password);
+        const { error } = await signUp(email, password, username);
         if (error) {
           if (error.message.includes('already registered')) {
             toast({
@@ -129,6 +137,22 @@ export default function Auth() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
+        {!isLogin && (
+          <div>
+            <label className="block text-xs uppercase tracking-wider font-sans font-semibold mb-2" style={{ color: '#CCCCCC' }}>
+              Username
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full bg-transparent border border-steel px-4 py-3 text-stark font-sans focus:border-stark focus:outline-none transition-colors duration-300"
+              placeholder="your_username"
+              required
+            />
+          </div>
+        )}
+
         <div>
           <label className="block text-xs uppercase tracking-wider font-sans font-semibold mb-2" style={{ color: '#CCCCCC' }}>
             Email
@@ -139,7 +163,6 @@ export default function Auth() {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full bg-transparent border border-steel px-4 py-3 text-stark font-sans focus:border-stark focus:outline-none transition-colors duration-300"
             placeholder="your@email.com"
-            style={{ '::placeholder': { color: '#666666' } } as any}
             required
           />
         </div>
