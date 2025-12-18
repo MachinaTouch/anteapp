@@ -12,7 +12,7 @@ interface Risk {
   forecast: string;
   status: string;
   created_at: string;
-  result?: string;
+  outcome?: string;
 }
 
 export default function Arena() {
@@ -50,7 +50,7 @@ export default function Arena() {
     setRisks(allRisks);
     const active = activeRisks.length;
     const settled = settledRisks.length;
-    const wins = settledRisks.filter(r => r.result === 'success').length;
+    const wins = settledRisks.filter(r => r.outcome === 'SUCCESS').length;
     setStats({
       active,
       settled,
@@ -83,8 +83,8 @@ export default function Arena() {
   ];
 
   const demoSettlements: Risk[] = [
-    { id: '4', description: 'Asked for a promotion after being passed over twice', forecast: 'SUCCESS', result: 'success', status: 'settled', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: '5', description: 'Confronted my landlord about the broken heater', forecast: 'FAILURE', result: 'success', status: 'settled', created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: '4', description: 'Asked for a promotion after being passed over twice', forecast: 'SUCCESS', outcome: 'SUCCESS', status: 'settled', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: '5', description: 'Confronted my landlord about the broken heater', forecast: 'FAILURE', outcome: 'SUCCESS', status: 'settled', created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString() },
   ];
 
   const displayRisks = risks.length > 0 ? risks : demoRisks;
@@ -253,8 +253,8 @@ export default function Arena() {
                 <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
                   Risk #{1240 - index}
                 </span>
-                <span className={`font-mono text-xs font-bold ${risk.result === 'success' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  {risk.result === 'success' ? 'SUCCESS' : 'FAILURE'}
+                <span className={`font-mono text-xs font-bold ${risk.outcome === 'SUCCESS' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {risk.outcome || 'PENDING'}
                 </span>
               </div>
               <p className="text-sm leading-relaxed mb-2">{risk.description}</p>
