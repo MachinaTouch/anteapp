@@ -1,9 +1,33 @@
 import { useState, useEffect } from 'react';
-import { Lock, Star } from 'lucide-react';
+import { Lock, Star, Heart } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { formatDistanceToNow } from 'date-fns';
+
+interface FeedRisk {
+  id: string;
+  description: string;
+  created_at: string;
+  xp_potential: number;
+  status: string;
+  prediction: string;
+  profiles: {
+    username: string | null;
+    avatar_url: string | null;
+  } | null;
+  inspiration_count: number;
+  is_inspired: boolean;
+}
+
+interface LeaderboardUser {
+  id: string;
+  username: string | null;
+  avatar_url: string | null;
+  xp_total: number;
+  level: number;
+}
 
 export default function Society() {
   const { user } = useAuth();
@@ -11,61 +35,179 @@ export default function Society() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [activeTab, setActiveTab] = useState<'feed' | 'leaderboard'>('feed');
   const [loading, setLoading] = useState(true);
+  const [feedRisks, setFeedRisks] = useState<FeedRisk[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [featuredRisk, setFeaturedRisk] = useState<FeedRisk | null>(null);
+  const [memberCount, setMemberCount] = useState(0);
 
   useEffect(() => {
-    const fetchProStatus = async () => {
+    const fetchData = async () => {
       if (!user) {
         setLoading(false);
         setShowPaywall(true);
         return;
       }
 
-      const { data, error } = await supabase
+      // Fetch pro status
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('is_pro')
         .eq('id', user.id)
         .maybeSingle();
 
-      if (data) {
-        setIsPro(data.is_pro === true);
-        setShowPaywall(data.is_pro !== true);
+      if (profileData) {
+        setIsPro(profileData.is_pro === true);
+        setShowPaywall(profileData.is_pro !== true);
       } else {
         setShowPaywall(true);
       }
+
+      // Fetch member count
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      setMemberCount(count || 0);
+
+      // Fetch public risks with profile data and inspiration counts
+      const { data: risksData } = await supabase
+        .from('risks')
+        .select(`
+          id,
+          description,
+          created_at,
+          xp_potential,
+          status,
+          prediction,
+          profiles:user_id (
+            username,
+            avatar_url
+          )
+        `)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (risksData) {
+        // Fetch inspiration counts and user's inspirations
+        const riskIds = risksData.map(r => r.id);
+        
+        const { data: inspirationCounts } = await supabase
+          .from('inspirations')
+          .select('risk_id')
+          .in('risk_id', riskIds);
+
+        const { data: userInspirations } = await supabase
+          .from('inspirations')
+          .select('risk_id')
+          .eq('user_id', user.id)
+          .in('risk_id', riskIds);
+
+        const countMap: Record<string, number> = {};
+        inspirationCounts?.forEach(i => {
+          countMap[i.risk_id] = (countMap[i.risk_id] || 0) + 1;
+        });
+
+        const userInspiredSet = new Set(userInspirations?.map(i => i.risk_id) || []);
+
+        const enrichedRisks: FeedRisk[] = risksData.map(risk => {
+          // Handle the profiles data - it could be an array or object depending on the join
+          const profileData = Array.isArray(risk.profiles) ? risk.profiles[0] : risk.profiles;
+          return {
+            id: risk.id,
+            description: risk.description,
+            created_at: risk.created_at,
+            xp_potential: risk.xp_potential,
+            status: risk.status,
+            prediction: risk.prediction,
+            profiles: profileData as { username: string | null; avatar_url: string | null } | null,
+            inspiration_count: countMap[risk.id] || 0,
+            is_inspired: userInspiredSet.has(risk.id),
+          };
+        });
+
+        setFeedRisks(enrichedRisks);
+
+        // Set featured as the one with most inspirations
+        if (enrichedRisks.length > 0) {
+          const featured = [...enrichedRisks].sort((a, b) => b.inspiration_count - a.inspiration_count)[0];
+          setFeaturedRisk(featured);
+        }
+      }
+
+      // Fetch leaderboard
+      const { data: leaderboardData } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, xp_total, level')
+        .order('xp_total', { ascending: false })
+        .limit(50);
+
+      if (leaderboardData) {
+        setLeaderboard(leaderboardData);
+      }
+
       setLoading(false);
     };
 
-    fetchProStatus();
+    fetchData();
   }, [user]);
 
+  const handleInspire = async (riskId: string, isCurrentlyInspired: boolean) => {
+    if (!user) return;
+
+    if (isCurrentlyInspired) {
+      // Remove inspiration
+      await supabase
+        .from('inspirations')
+        .delete()
+        .eq('risk_id', riskId)
+        .eq('user_id', user.id);
+    } else {
+      // Add inspiration
+      await supabase
+        .from('inspirations')
+        .insert({ risk_id: riskId, user_id: user.id });
+    }
+
+    // Update local state
+    setFeedRisks(prev => prev.map(risk => {
+      if (risk.id === riskId) {
+        return {
+          ...risk,
+          is_inspired: !isCurrentlyInspired,
+          inspiration_count: isCurrentlyInspired 
+            ? risk.inspiration_count - 1 
+            : risk.inspiration_count + 1,
+        };
+      }
+      return risk;
+    }));
+
+    // Update featured if needed
+    if (featuredRisk?.id === riskId) {
+      setFeaturedRisk(prev => prev ? {
+        ...prev,
+        is_inspired: !isCurrentlyInspired,
+        inspiration_count: isCurrentlyInspired 
+          ? prev.inspiration_count - 1 
+          : prev.inspiration_count + 1,
+      } : null);
+    }
+  };
+
   const handleStartTrial = async () => {
-    // In a real app, this would trigger a payment flow
-    // For now, just close the paywall
     setShowPaywall(false);
     setIsPro(true);
   };
 
-  const featuredCourage = {
-    user: 'Anonymous #1089',
-    text: 'Quit my stable job to start my own company. Terrified but alive.',
-    xp: 250,
-    likes: 147,
+  const getDisplayName = (profiles: { username: string | null } | null) => {
+    return profiles?.username || 'Anonymous';
   };
 
-  const feedItems = [
-    { id: 1, user: 'Anonymous #2891', time: '4 hours ago', text: 'Told my parents I\'m dropping out of medical school to pursue art. They\'ve wanted me to be a doctor since I was 5.', result: 'FAILURE', forecast: 'MATCH', xp: 150 },
-    { id: 2, user: 'Anonymous #5634', time: '6 hours ago', text: 'Published my first YouTube video about my mental health journey. Face on camera, real name, everything.', result: 'SUCCESS', forecast: 'MISMATCH', xp: 100 },
-    { id: 3, user: 'Anonymous #1247', time: '8 hours ago', text: 'Asked for a promotion after 3 years of being overlooked. Finally stood up for myself.', result: 'SUCCESS', forecast: 'MATCH', xp: 150 },
-    { id: 4, user: 'Anonymous #8821', time: '12 hours ago', text: 'Sent the text ending a toxic friendship of 10 years. Hardest thing I\'ve ever done.', result: 'SUCCESS', forecast: 'MATCH', xp: 150 },
-  ];
-
-  const leaderboard = [
-    { rank: 1, user: 'StormRider', xp: 12450, risks: 156, winRate: 82 },
-    { rank: 2, user: 'FearlessFox', xp: 11200, risks: 142, winRate: 79 },
-    { rank: 3, user: 'BoldVenture', xp: 10800, risks: 138, winRate: 81 },
-    { rank: 4, user: 'RiskTaker99', xp: 9650, risks: 125, winRate: 77 },
-    { rank: 5, user: 'CourageKing', xp: 8900, risks: 118, winRate: 75 },
-  ];
+  const getResultLabel = (status: string) => {
+    if (status === 'success') return 'SUCCESS';
+    if (status === 'failure') return 'FAILURE';
+    return 'PENDING';
+  };
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-background relative pb-20">
@@ -78,7 +220,7 @@ export default function Society() {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-1 h-1 bg-signal animate-pulse"></div>
-            <span className="font-mono text-sm">1,247 Members</span>
+            <span className="font-mono text-sm">{memberCount.toLocaleString()} Members</span>
           </div>
         </div>
       </section>
@@ -136,96 +278,142 @@ export default function Society() {
         </section>
 
         {/* Featured Courage */}
-        <section className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Star className="w-4 h-4 text-foreground" />
-            <h3 className="font-black text-lg tracking-tight">FEATURED COURAGE</h3>
-          </div>
-          <div className={`border-2 border-foreground p-5 ${!isPro ? 'blur-content' : ''}`}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 bg-foreground text-background flex items-center justify-center font-mono font-bold text-xs">★</div>
-              <div>
-                <div className="text-xs font-mono">{featuredCourage.user}</div>
-                <div className="text-xs text-muted-foreground">Today's Top Risk</div>
+        {featuredRisk && (
+          <section className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Star className="w-4 h-4 text-foreground" />
+              <h3 className="font-black text-lg tracking-tight">FEATURED COURAGE</h3>
+            </div>
+            <div className={`border-2 border-foreground p-5 ${!isPro ? 'blur-content' : ''}`}>
+              <div className="flex items-center gap-2 mb-3">
+                {featuredRisk.profiles?.avatar_url ? (
+                  <img 
+                    src={featuredRisk.profiles.avatar_url} 
+                    alt="" 
+                    className="w-8 h-8 object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-foreground text-background flex items-center justify-center font-mono font-bold text-xs">★</div>
+                )}
+                <div>
+                  <div className="text-xs font-mono">{getDisplayName(featuredRisk.profiles)}</div>
+                  <div className="text-xs text-muted-foreground">Top Risk</div>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed mb-4 font-medium">{featuredRisk.description}</p>
+              <div className="flex items-center justify-between pt-3 border-t border-border">
+                <button
+                  onClick={() => handleInspire(featuredRisk.id, featuredRisk.is_inspired)}
+                  className={`flex items-center gap-2 transition-colors ${
+                    featuredRisk.is_inspired ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${featuredRisk.is_inspired ? 'fill-current' : ''}`} />
+                  <span className="text-xs">{featuredRisk.inspiration_count} inspired</span>
+                </button>
+                <div className="font-mono text-lg font-bold">+{featuredRisk.xp_potential} XP</div>
               </div>
             </div>
-            <p className="text-sm leading-relaxed mb-4 font-medium">{featuredCourage.text}</p>
-            <div className="flex items-center justify-between pt-3 border-t border-border">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{featuredCourage.likes} inspired</span>
-              </div>
-              <div className="font-mono text-lg font-bold">+{featuredCourage.xp} XP</div>
-            </div>
-          </div>
-        </section>
-
-        {/* Stats (blurred for free users) */}
-        <section className="mb-8">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="border border-border p-4">
-              <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Risks Today</div>
-              <div className={`font-mono text-xl font-bold ${!isPro ? 'blur-content' : ''}`}>247</div>
-            </div>
-            <div className="border border-border p-4">
-              <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Avg XP</div>
-              <div className={`font-mono text-xl font-bold ${!isPro ? 'blur-content' : ''}`}>142</div>
-            </div>
-            <div className="border border-border p-4">
-              <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Success Rate</div>
-              <div className={`font-mono text-xl font-bold ${!isPro ? 'blur-content' : ''}`}>67%</div>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Content based on tab */}
         {activeTab === 'feed' ? (
           <section className="mb-8">
             <h3 className="font-black text-xl tracking-tight mb-4">LIVE FEED</h3>
-            {feedItems.map((item) => (
-              <div key={item.id} className={`border border-border p-5 mb-3 ${!isPro ? 'blur-content' : ''}`}>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-secondary"></div>
-                  <div>
-                    <div className="text-xs font-mono">{item.user}</div>
-                    <div className="text-xs text-muted-foreground">{item.time}</div>
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            ) : feedRisks.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No public risks yet</div>
+            ) : (
+              feedRisks.map((risk) => (
+                <div key={risk.id} className={`border border-border p-5 mb-3 ${!isPro ? 'blur-content' : ''}`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    {risk.profiles?.avatar_url ? (
+                      <img 
+                        src={risk.profiles.avatar_url} 
+                        alt="" 
+                        className="w-8 h-8 object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-secondary"></div>
+                    )}
+                    <div>
+                      <div className="text-xs font-mono">{getDisplayName(risk.profiles)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(risk.created_at), { addSuffix: true })}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm leading-relaxed mb-4">{risk.description}</p>
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Result</div>
+                        <div className="font-mono text-xs">{getResultLabel(risk.status)}</div>
+                      </div>
+                      <button
+                        onClick={() => handleInspire(risk.id, risk.is_inspired)}
+                        className={`flex items-center gap-1 transition-colors ${
+                          risk.is_inspired ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Heart className={`w-4 h-4 ${risk.is_inspired ? 'fill-current' : ''}`} />
+                        <span className="text-xs">{risk.inspiration_count}</span>
+                      </button>
+                    </div>
+                    <div className="font-mono text-lg font-bold">+{risk.xp_potential} XP</div>
                   </div>
                 </div>
-                <p className="text-sm leading-relaxed mb-4">{item.text}</p>
-                <div className="flex items-center justify-between pt-3 border-t border-border">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Result</div>
-                      <div className="font-mono text-xs">{item.result}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Forecast</div>
-                      <div className="font-mono text-xs">{item.forecast}</div>
-                    </div>
-                  </div>
-                  <div className="font-mono text-lg font-bold">+{item.xp} XP</div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </section>
         ) : (
           <section className="mb-8">
             <h3 className="font-black text-xl tracking-tight mb-4">TOP RISK TAKERS</h3>
-            {leaderboard.map((entry) => (
-              <div key={entry.rank} className={`border border-border p-4 mb-3 ${!isPro ? 'blur-content' : ''}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 border border-foreground flex items-center justify-center font-mono font-bold">
-                      {entry.rank}
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            ) : leaderboard.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No users yet</div>
+            ) : (
+              leaderboard.map((entry, index) => (
+                <div 
+                  key={entry.id} 
+                  className={`border p-4 mb-3 ${
+                    entry.id === user?.id 
+                      ? 'border-foreground bg-foreground/5' 
+                      : 'border-border'
+                  } ${!isPro ? 'blur-content' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-8 h-8 border flex items-center justify-center font-mono font-bold ${
+                        index < 3 ? 'border-foreground bg-foreground text-background' : 'border-foreground'
+                      }`}>
+                        {index + 1}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {entry.avatar_url ? (
+                          <img 
+                            src={entry.avatar_url} 
+                            alt="" 
+                            className="w-8 h-8 object-cover"
+                          />
+                        ) : null}
+                        <div>
+                          <div className="font-mono font-bold">
+                            {entry.username || 'Anonymous'}
+                            {entry.id === user?.id && <span className="text-muted-foreground ml-2">(You)</span>}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Level {entry.level}</div>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-mono font-bold">{entry.user}</div>
-                      <div className="text-xs text-muted-foreground">{entry.risks} risks • {entry.winRate}% win rate</div>
-                    </div>
+                    <div className="font-mono text-lg font-bold">{entry.xp_total.toLocaleString()}</div>
                   </div>
-                  <div className="font-mono text-lg font-bold">{entry.xp.toLocaleString()}</div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </section>
         )}
       </main>
