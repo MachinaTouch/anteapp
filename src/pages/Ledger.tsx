@@ -21,47 +21,47 @@ export default function Ledger() {
   const { user } = useAuth();
   const [activeHistoryFilter, setActiveHistoryFilter] = useState<'all' | 'success' | 'failure'>('all');
   const [settledRisks, setSettledRisks] = useState<SettledRisk[]>([]);
+  const [totalRisks, setTotalRisks] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSettledRisks = async () => {
+    const fetchRisksData = async () => {
       if (!user) {
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
+      // Fetch all risks count
+      const { count: allCount } = await supabase
+        .from('risks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      // Fetch settled risks with details
+      const { data: settledData, error } = await supabase
         .from('risks')
         .select('id, description, outcome, forecast, xp_earned, settled_at')
         .eq('user_id', user.id)
         .eq('status', 'settled')
         .order('settled_at', { ascending: false });
 
-      if (!error && data) {
-        setSettledRisks(data);
+      if (!error && settledData) {
+        setSettledRisks(settledData);
       }
+      setTotalRisks(allCount || 0);
       setLoading(false);
     };
 
-    fetchSettledRisks();
+    fetchRisksData();
   }, [user]);
 
-  const stats = {
-    totalXp: 1250,
-    level: 12,
-    globalRank: 247,
-    percentile: 5,
-    totalRisks: 50,
-    completed: 47,
-    completionRate: 94,
-    accuracyRating: 78,
-    grade: 'B+',
-    correct: 37,
-    incorrect: 10,
-    baseXp: 850,
-    intuitionXp: 300,
-    streakXp: 100,
-  };
+  // Calculate real stats from data
+  const totalXp = settledRisks.reduce((sum, risk) => sum + (risk.xp_earned || 0), 0);
+  const level = Math.floor(totalXp / 100) + 1;
+  const completedCount = settledRisks.length;
+  const completionRate = totalRisks > 0 ? Math.round((completedCount / totalRisks) * 100) : 0;
+  const xpToNextLevel = 100 - (totalXp % 100);
+  const levelProgress = (totalXp % 100);
 
   const riskHistory = [
     { id: 1, success: true }, { id: 2, success: true }, { id: 3, success: false },
@@ -103,13 +103,13 @@ export default function Ledger() {
         <div className="grid grid-cols-2 gap-4">
           <div className="border border-border p-4">
             <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2">Total XP</div>
-            <div className="font-mono text-3xl font-black">{stats.totalXp.toLocaleString()}</div>
-            <div className="text-muted-foreground text-xs font-mono mt-1">Level {stats.level}</div>
+            <div className="font-mono text-3xl font-black">{totalXp.toLocaleString()}</div>
+            <div className="text-muted-foreground text-xs font-mono mt-1">Level {level}</div>
           </div>
           <div className="border border-border p-4">
-            <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2">Global Rank</div>
-            <div className="font-mono text-3xl font-black">#{stats.globalRank}</div>
-            <div className="text-muted-foreground text-xs font-mono mt-1">Top {stats.percentile}%</div>
+            <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2">Completed</div>
+            <div className="font-mono text-3xl font-black">{completedCount}</div>
+            <div className="text-muted-foreground text-xs font-mono mt-1">of {totalRisks} risks</div>
           </div>
         </div>
       </section>
@@ -121,28 +121,28 @@ export default function Ledger() {
           <div className="border border-border p-6 mb-4">
             <div className="flex items-center justify-between mb-4">
               <span className="text-muted-foreground text-xs uppercase tracking-wider">Current Score</span>
-              <span className="font-mono text-4xl font-black">{stats.totalXp.toLocaleString()}</span>
+              <span className="font-mono text-4xl font-black">{totalXp.toLocaleString()}</span>
             </div>
             <div className="relative h-3 bg-secondary mb-3">
-              <div className="absolute left-0 top-0 h-full bg-foreground" style={{ width: '65%' }}></div>
+              <div className="absolute left-0 top-0 h-full bg-foreground" style={{ width: `${levelProgress}%` }}></div>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground font-mono">
-              <span>Level {stats.level}</span>
-              <span>350 XP to Level 13</span>
+              <span>Level {level}</span>
+              <span>{xpToNextLevel} XP to Level {level + 1}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div className="border border-border p-4 text-center">
-              <div className="font-mono text-2xl font-bold mb-1">{stats.totalRisks}</div>
+              <div className="font-mono text-2xl font-bold mb-1">{totalRisks}</div>
               <div className="text-muted-foreground text-xs uppercase tracking-wider">Total Risks</div>
             </div>
             <div className="border border-border p-4 text-center">
-              <div className="font-mono text-2xl font-bold mb-1">{stats.completed}</div>
+              <div className="font-mono text-2xl font-bold mb-1">{completedCount}</div>
               <div className="text-muted-foreground text-xs uppercase tracking-wider">Completed</div>
             </div>
             <div className="border border-border p-4 text-center">
-              <div className="font-mono text-2xl font-bold mb-1">{stats.completionRate}%</div>
+              <div className="font-mono text-2xl font-bold mb-1">{completionRate}%</div>
               <div className="text-muted-foreground text-xs uppercase tracking-wider">Completion</div>
             </div>
           </div>
@@ -156,15 +156,15 @@ export default function Ledger() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2">Accuracy Rating</div>
-                <div className="font-mono text-5xl font-black">{stats.accuracyRating}%</div>
+                <div className="font-mono text-5xl font-black">—%</div>
               </div>
               <div className="w-24 h-24 border-4 border-foreground relative flex items-center justify-center">
-                <span className="font-black text-3xl">{stats.grade}</span>
+                <span className="font-black text-3xl">—</span>
               </div>
             </div>
 
             <div className="relative h-4 bg-secondary mb-2">
-              <div className="absolute left-0 top-0 h-full bg-foreground" style={{ width: `${stats.accuracyRating}%` }}></div>
+              <div className="absolute left-0 top-0 h-full bg-foreground" style={{ width: '0%' }}></div>
             </div>
 
             <div className="flex justify-between text-xs text-muted-foreground font-mono mb-6">
@@ -176,11 +176,11 @@ export default function Ledger() {
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
               <div>
                 <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Correct</div>
-                <div className="font-mono text-2xl font-bold">{stats.correct}</div>
+                <div className="font-mono text-2xl font-bold">—</div>
               </div>
               <div>
                 <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Incorrect</div>
-                <div className="font-mono text-2xl font-bold">{stats.incorrect}</div>
+                <div className="font-mono text-2xl font-bold">—</div>
               </div>
             </div>
           </div>
@@ -191,13 +191,13 @@ export default function Ledger() {
               <div className="flex-1">
                 <h4 className="font-bold text-sm mb-1">Intuition Trend</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Your forecast accuracy has improved by 12% over the past 30 days. Keep trusting your instincts.
+                  Complete more risks to see your intuition analytics here.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 pt-3 border-t border-border">
               <div className="w-2 h-2 bg-foreground"></div>
-              <span className="text-xs font-mono text-muted-foreground">UPWARD TRAJECTORY</span>
+              <span className="text-xs font-mono text-muted-foreground">COMING SOON</span>
             </div>
           </div>
         </section>
@@ -216,10 +216,10 @@ export default function Ledger() {
                     <div className="text-xs text-muted-foreground">From completing risks</div>
                   </div>
                 </div>
-                <div className="font-mono text-xl font-bold">{stats.baseXp}</div>
+                <div className="font-mono text-xl font-bold">{totalXp}</div>
               </div>
               <div className="h-2 bg-secondary">
-                <div className="h-full bg-foreground" style={{ width: '68%' }}></div>
+                <div className="h-full bg-foreground" style={{ width: '100%' }}></div>
               </div>
             </div>
 
@@ -232,10 +232,10 @@ export default function Ledger() {
                     <div className="text-xs text-muted-foreground">From correct forecasts</div>
                   </div>
                 </div>
-                <div className="font-mono text-xl font-bold">{stats.intuitionXp}</div>
+                <div className="font-mono text-xl font-bold">—</div>
               </div>
               <div className="h-2 bg-secondary">
-                <div className="h-full bg-foreground" style={{ width: '24%' }}></div>
+                <div className="h-full bg-foreground" style={{ width: '0%' }}></div>
               </div>
             </div>
 
@@ -248,10 +248,10 @@ export default function Ledger() {
                     <div className="text-xs text-muted-foreground">From consistency</div>
                   </div>
                 </div>
-                <div className="font-mono text-xl font-bold">{stats.streakXp}</div>
+                <div className="font-mono text-xl font-bold">—</div>
               </div>
               <div className="h-2 bg-secondary">
-                <div className="h-full bg-foreground" style={{ width: '8%' }}></div>
+                <div className="h-full bg-foreground" style={{ width: '0%' }}></div>
               </div>
             </div>
           </div>
@@ -259,7 +259,7 @@ export default function Ledger() {
           <div className="border border-foreground p-5">
             <div className="flex items-center justify-between">
               <span className="font-bold text-lg">TOTAL XP EARNED</span>
-              <span className="font-mono text-3xl font-black">{stats.totalXp.toLocaleString()}</span>
+              <span className="font-mono text-3xl font-black">{totalXp.toLocaleString()}</span>
             </div>
           </div>
         </section>
