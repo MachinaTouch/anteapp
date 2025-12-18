@@ -21,7 +21,7 @@ export default function Splash() {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-void flex flex-col px-6 py-12 overflow-hidden">
+    <div className="max-w-md mx-auto min-h-screen flex flex-col px-6 py-12 overflow-hidden" style={{ backgroundColor: '#050505' }}>
       {/* Top Section - Logo */}
       <div className={`flex flex-col items-center opacity-0 ${showContent ? 'animate-fade-in' : ''}`}>
         {/* Logo Box */}
@@ -40,28 +40,15 @@ export default function Splash() {
         </div>
       </div>
 
-      {/* Middle Section - Quote Box */}
+      {/* Quote Box */}
       <div 
         className="mt-12 opacity-0 animate-slide-up"
         style={{ animationDelay: '600ms', animationFillMode: 'forwards' }}
       >
-        <div className="border border-steel p-6 relative">
-          {/* Quote marks */}
-          <div className="absolute -top-3 left-4 bg-void px-2">
-            <span className="text-ghost text-2xl font-serif">"</span>
-          </div>
-          
-          <p className="text-ghost text-sm font-sans leading-relaxed text-center italic">
-            Courage is not the absence of fear, but the willingness to act despite it. Every risk you take, every fear you face, builds the person you're becoming.
+        <div className="border border-steel p-6">
+          <p className="text-ghost text-sm font-sans leading-relaxed text-center">
+            Courage is not the absence of fear, but the willingness to act despite it.
           </p>
-          
-          {/* Philosophy label */}
-          <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-steel">
-            <span className="text-ghost text-xs font-sans uppercase tracking-wider">The Ante Philosophy</span>
-            <svg className="w-3 h-3 text-ghost" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </div>
         </div>
       </div>
 
@@ -104,7 +91,7 @@ export default function Splash() {
           disabled={loading}
           className="w-full bg-stark text-void font-sans font-bold text-sm uppercase tracking-wider py-4 px-6 hover:bg-ghost transition-colors duration-200 disabled:opacity-50"
         >
-          {loading ? 'Loading...' : 'Enter The Arena'}
+          ENTER THE ARENA
         </button>
       </div>
     </div>
