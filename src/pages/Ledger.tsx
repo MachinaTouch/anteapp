@@ -14,6 +14,7 @@ interface SettledRisk {
   forecast: string;
   xp_earned: number;
   settled_at: string;
+  intuition_correct?: boolean;
 }
 
 export default function Ledger() {
@@ -40,7 +41,7 @@ export default function Ledger() {
       // Fetch settled risks with details
       const { data: settledData, error } = await supabase
         .from('risks')
-        .select('id, description, outcome, forecast, xp_earned, settled_at')
+        .select('id, description, outcome, forecast, xp_earned, settled_at, intuition_correct')
         .eq('user_id', user.id)
         .eq('status', 'settled')
         .order('settled_at', { ascending: false });
@@ -63,18 +64,27 @@ export default function Ledger() {
   const xpToNextLevel = 100 - (totalXp % 100);
   const levelProgress = (totalXp % 100);
 
-  const riskHistory = [
-    { id: 1, success: true }, { id: 2, success: true }, { id: 3, success: false },
-    { id: 4, success: true }, { id: 5, success: true }, { id: 6, success: true },
-    { id: 7, success: false }, { id: 8, success: true }, { id: 9, success: true },
-    { id: 10, success: true }, { id: 11, success: true }, { id: 12, success: false },
-    { id: 13, success: true }, { id: 14, success: true }, { id: 15, success: true },
-    { id: 16, success: true }, { id: 17, success: false }, { id: 18, success: true },
-    { id: 19, success: true }, { id: 20, success: true }, { id: 21, success: true },
-    { id: 22, success: true }, { id: 23, success: true }, { id: 24, success: false },
-    { id: 25, success: true }, { id: 26, success: true }, { id: 27, success: true },
-    { id: 28, success: true }, { id: 29, success: true }, { id: 30, success: true },
-  ];
+  // Intuition Grade calculation
+  const correctPredictions = settledRisks.filter(r => r.intuition_correct === true).length;
+  const incorrectPredictions = settledRisks.filter(r => r.intuition_correct === false).length;
+  const totalPredictions = correctPredictions + incorrectPredictions;
+  const intuitionAccuracy = totalPredictions > 0 ? Math.round((correctPredictions / totalPredictions) * 100) : 0;
+  
+  const getGrade = (accuracy: number): string => {
+    if (accuracy >= 90) return 'A+';
+    if (accuracy >= 80) return 'A';
+    if (accuracy >= 70) return 'B';
+    if (accuracy >= 60) return 'C';
+    if (accuracy >= 50) return 'D';
+    return 'F';
+  };
+  const intuitionGrade = totalPredictions > 0 ? getGrade(intuitionAccuracy) : '—';
+
+  // Real risk history from settled risks (last 30)
+  const riskHistory = settledRisks.slice(0, 30).map((risk, index) => ({
+    id: index + 1,
+    success: risk.outcome === 'SUCCESS'
+  }));
 
   const filteredHistory = settledRisks.filter(item => {
     if (activeHistoryFilter === 'all') return true;
@@ -156,15 +166,15 @@ export default function Ledger() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2">Accuracy Rating</div>
-                <div className="font-mono text-5xl font-black">—%</div>
+                <div className="font-mono text-5xl font-black">{totalPredictions > 0 ? `${intuitionAccuracy}%` : '—%'}</div>
               </div>
               <div className="w-24 h-24 border-4 border-foreground relative flex items-center justify-center">
-                <span className="font-black text-3xl">—</span>
+                <span className="font-black text-3xl">{intuitionGrade}</span>
               </div>
             </div>
 
             <div className="relative h-4 bg-secondary mb-2">
-              <div className="absolute left-0 top-0 h-full bg-foreground" style={{ width: '0%' }}></div>
+              <div className="absolute left-0 top-0 h-full bg-foreground" style={{ width: `${intuitionAccuracy}%` }}></div>
             </div>
 
             <div className="flex justify-between text-xs text-muted-foreground font-mono mb-6">
@@ -176,11 +186,11 @@ export default function Ledger() {
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
               <div>
                 <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Correct</div>
-                <div className="font-mono text-2xl font-bold">—</div>
+                <div className="font-mono text-2xl font-bold">{correctPredictions}</div>
               </div>
               <div>
                 <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Incorrect</div>
-                <div className="font-mono text-2xl font-bold">—</div>
+                <div className="font-mono text-2xl font-bold">{incorrectPredictions}</div>
               </div>
             </div>
           </div>
@@ -191,13 +201,17 @@ export default function Ledger() {
               <div className="flex-1">
                 <h4 className="font-bold text-sm mb-1">Intuition Trend</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Complete more risks to see your intuition analytics here.
+                  {totalPredictions > 0 
+                    ? `You've made ${totalPredictions} predictions with ${intuitionAccuracy}% accuracy.`
+                    : 'Complete more risks to see your intuition analytics here.'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 pt-3 border-t border-border">
               <div className="w-2 h-2 bg-foreground"></div>
-              <span className="text-xs font-mono text-muted-foreground">COMING SOON</span>
+              <span className="text-xs font-mono text-muted-foreground">
+                {totalPredictions > 0 ? `GRADE: ${intuitionGrade}` : 'NO DATA YET'}
+              </span>
             </div>
           </div>
         </section>
@@ -276,7 +290,7 @@ export default function Ledger() {
           <div className="border border-border p-5 mb-4">
             <div className="flex items-center justify-between mb-4">
               <span className="text-muted-foreground text-xs uppercase tracking-wider">Visualization</span>
-              <span className="text-muted-foreground text-xs font-mono">Last 30 Risks</span>
+              <span className="text-muted-foreground text-xs font-mono">{riskHistory.length > 0 ? `Last ${riskHistory.length} Risks` : 'No risks yet'}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {riskHistory.map((risk) => (
