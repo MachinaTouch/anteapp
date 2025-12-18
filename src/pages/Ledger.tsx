@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Filter, Brain, Trophy, Lightbulb, ChevronRight, Trash2 } from 'lucide-react';
+import { Settings, Filter, Brain, Trophy, Lightbulb, ChevronRight, Trash2, Eye, Lock } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 interface SettledRisk {
@@ -15,11 +16,13 @@ interface SettledRisk {
   xp_earned: number;
   settled_at: string;
   intuition_correct?: boolean;
+  is_public?: boolean;
 }
 
 export default function Ledger() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [activeHistoryFilter, setActiveHistoryFilter] = useState<'all' | 'success' | 'failure'>('all');
   const [settledRisks, setSettledRisks] = useState<SettledRisk[]>([]);
   const [totalRisks, setTotalRisks] = useState(0);
@@ -40,7 +43,7 @@ export default function Ledger() {
     // Fetch settled risks with details
     const { data: settledData, error } = await supabase
       .from('risks')
-      .select('id, description, outcome, forecast, xp_earned, settled_at, intuition_correct')
+      .select('id, description, outcome, forecast, xp_earned, settled_at, intuition_correct, is_public')
       .eq('user_id', user.id)
       .eq('status', 'settled')
       .order('settled_at', { ascending: false });
@@ -61,6 +64,34 @@ export default function Ledger() {
     
     await supabase.from('risks').delete().eq('id', riskId);
     fetchRisksData();
+  };
+
+  const handleTogglePrivacy = async (riskId: string, currentIsPublic: boolean) => {
+    const newIsPublic = !currentIsPublic;
+    
+    const { error } = await supabase
+      .from('risks')
+      .update({ is_public: newIsPublic })
+      .eq('id', riskId);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update privacy setting",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Update local state instantly
+    setSettledRisks(prev => prev.map(r => 
+      r.id === riskId ? { ...r, is_public: newIsPublic } : r
+    ));
+    
+    toast({
+      title: newIsPublic ? "Risk is now Public" : "Risk is now Private",
+      description: newIsPublic ? "Visible in Society feed" : "Only you can see this",
+    });
   };
 
   // Calculate real stats from data
@@ -359,6 +390,17 @@ export default function Ledger() {
                     }`}>
                       {item.outcome}
                     </span>
+                    <button
+                      onClick={() => handleTogglePrivacy(item.id, item.is_public ?? false)}
+                      className="p-1 hover:bg-secondary rounded transition-colors"
+                      title={item.is_public ? "Make Private" : "Make Public"}
+                    >
+                      {item.is_public ? (
+                        <Eye className="w-4 h-4 text-foreground" />
+                      ) : (
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </button>
                     <button
                       onClick={() => handleDeleteRisk(item.id)}
                       className="p-1 text-muted-foreground hover:text-destructive transition-colors"
