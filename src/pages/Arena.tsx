@@ -5,7 +5,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { useToast } from '@/hooks/use-toast';
 interface Risk {
   id: string;
   description: string;
@@ -22,6 +22,7 @@ export default function Arena() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [risks, setRisks] = useState<Risk[]>([]);
   const [stats, setStats] = useState({ active: 0, settled: 0, winRate: 0 });
   const [totalXp, setTotalXp] = useState(0);
@@ -113,6 +114,35 @@ export default function Arena() {
     
     await supabase.from('risks').delete().eq('id', riskId);
     fetchRisks();
+  };
+
+  const handleTogglePrivacy = async (e: React.MouseEvent, riskId: string, currentIsPublic: boolean) => {
+    e.stopPropagation();
+    const newIsPublic = !currentIsPublic;
+    
+    const { error } = await supabase
+      .from('risks')
+      .update({ is_public: newIsPublic })
+      .eq('id', riskId);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update privacy setting",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Update local state instantly
+    setRisks(prev => prev.map(r => 
+      r.id === riskId ? { ...r, is_public: newIsPublic } : r
+    ));
+    
+    toast({
+      title: newIsPublic ? "Risk is now Public" : "Risk is now Private",
+      description: newIsPublic ? "Visible in Society feed" : "Only you can see this",
+    });
   };
 
   // Demo data if no risks exist
@@ -250,11 +280,17 @@ export default function Arena() {
                       <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
                         Risk #{1247 - index}
                       </span>
-                      {risk.is_public ? (
-                        <Eye className="w-3 h-3 text-muted-foreground" />
-                      ) : (
-                        <Lock className="w-3 h-3 text-muted-foreground" />
-                      )}
+                      <button
+                        onClick={(e) => handleTogglePrivacy(e, risk.id, risk.is_public ?? false)}
+                        className="p-1 hover:bg-secondary rounded transition-colors"
+                        title={risk.is_public ? "Make Private" : "Make Public"}
+                      >
+                        {risk.is_public ? (
+                          <Eye className="w-3 h-3 text-foreground" />
+                        ) : (
+                          <Lock className="w-3 h-3 text-muted-foreground" />
+                        )}
+                      </button>
                     </div>
                     <p className="text-sm leading-relaxed mb-3">{risk.description}</p>
                   </div>
