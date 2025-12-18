@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, Star } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 
@@ -11,6 +11,13 @@ export default function Society() {
   const handleStartTrial = () => {
     setShowPaywall(false);
     setIsPro(true);
+  };
+
+  const featuredCourage = {
+    user: 'Anonymous #1089',
+    text: 'Quit my stable job to start my own company. Terrified but alive.',
+    xp: 250,
+    likes: 147,
   };
 
   const feedItems = [
@@ -93,6 +100,30 @@ export default function Society() {
             >
               Leaderboard
             </button>
+          </div>
+        </section>
+
+        {/* Featured Courage */}
+        <section className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Star className="w-4 h-4 text-foreground" />
+            <h3 className="font-black text-lg tracking-tight">FEATURED COURAGE</h3>
+          </div>
+          <div className={`border-2 border-foreground p-5 ${!isPro ? 'blur-content' : ''}`}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-foreground text-background flex items-center justify-center font-mono font-bold text-xs">★</div>
+              <div>
+                <div className="text-xs font-mono">{featuredCourage.user}</div>
+                <div className="text-xs text-muted-foreground">Today's Top Risk</div>
+              </div>
+            </div>
+            <p className="text-sm leading-relaxed mb-4 font-medium">{featuredCourage.text}</p>
+            <div className="flex items-center justify-between pt-3 border-t border-border">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{featuredCourage.likes} inspired</span>
+              </div>
+              <div className="font-mono text-lg font-bold">+{featuredCourage.xp} XP</div>
+            </div>
           </div>
         </section>
 
@@ -196,11 +227,17 @@ export default function Society() {
               </div>
             </div>
 
+            {/* Price */}
+            <div className="text-center mb-6">
+              <span className="font-mono text-3xl font-black">$4.99</span>
+              <span className="text-muted-foreground text-sm">/mo</span>
+            </div>
+
             <button
               onClick={handleStartTrial}
               className="w-full border border-foreground bg-foreground text-background py-4 font-bold text-sm uppercase tracking-wider hover:bg-transparent hover:text-foreground transition-all mb-4"
             >
-              Start 7-Day Trial
+              Start 7-Day Free Trial
             </button>
 
             <button

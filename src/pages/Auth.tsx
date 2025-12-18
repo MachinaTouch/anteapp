@@ -17,7 +17,6 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
@@ -81,110 +80,37 @@ export default function Auth() {
     }
   };
 
-  if (!showForm) {
-    return (
-      <div className="max-w-md mx-auto min-h-screen bg-void flex flex-col overflow-hidden">
-        {/* Hero Section */}
-        <section className="pt-20 pb-12 px-6">
-          <div className={`flex flex-col items-center opacity-0 ${showContent ? 'animate-fade-in' : ''}`}>
-            {/* Logo */}
-            <div className="w-20 h-20 border-2 border-stark flex items-center justify-center mb-6 animate-border-pulse">
-              <span className="font-sans font-black text-4xl text-stark">A</span>
-            </div>
-            <h1 className="font-sans font-black text-5xl tracking-tight text-stark mb-2">ANTE</h1>
-            <div className="flex items-center gap-3 mt-2">
-              <div className="w-8 h-[1px] bg-ghost"></div>
-              <p className="text-ghost text-xs font-sans uppercase tracking-[0.2em]">Place Your Courage</p>
-              <div className="w-8 h-[1px] bg-ghost"></div>
-            </div>
-          </div>
-        </section>
-
-        {/* Philosophy Card */}
-        <section 
-          className="px-6 mb-12 opacity-0 animate-slide-up"
-          style={{ animationDelay: '400ms', animationFillMode: 'forwards' }}
-        >
-          <div className="border border-steel p-6 bg-void">
-            <p className="text-center text-sm font-sans text-ghost leading-relaxed mb-4">
-              Courage is not the absence of fear,<br />
-              but the willingness to act despite it.
-            </p>
-            <div className="flex justify-center">
-              <div className="w-12 h-[1px] bg-steel"></div>
-            </div>
-          </div>
-        </section>
-
-        {/* Stats Section */}
-        <section 
-          className="px-6 mb-12 opacity-0 animate-slide-up"
-          style={{ animationDelay: '600ms', animationFillMode: 'forwards' }}
-        >
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="border border-steel p-4">
-              <p className="font-mono font-bold text-xl text-stark">1K+</p>
-              <p className="text-ghost text-xs font-sans uppercase tracking-wider mt-1">Members</p>
-            </div>
-            <div className="border border-steel p-4">
-              <p className="font-mono font-bold text-xl text-stark">50K+</p>
-              <p className="text-ghost text-xs font-sans uppercase tracking-wider mt-1">Risks</p>
-            </div>
-            <div className="border border-steel p-4">
-              <p className="font-mono font-bold text-xl text-stark">78%</p>
-              <p className="text-ghost text-xs font-sans uppercase tracking-wider mt-1">Accuracy</p>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section 
-          className="px-6 flex-1 flex flex-col justify-end pb-12 opacity-0 animate-slide-up"
-          style={{ animationDelay: '800ms', animationFillMode: 'forwards' }}
-        >
-          <button
-            onClick={() => setShowForm(true)}
-            className="w-full border border-stark bg-stark text-void py-4 font-sans font-bold text-sm uppercase tracking-wider mb-4 hover:bg-transparent hover:text-stark transition-all duration-300"
-          >
-            Enter The Arena
-          </button>
-          <p className="text-center text-xs text-ghost font-sans tracking-wide">
-            Track your risks. Build your courage.
-          </p>
-        </section>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-void flex flex-col px-6 py-12 overflow-hidden">
+    <div className="max-w-md mx-auto min-h-screen flex flex-col px-6 py-12 overflow-hidden" style={{ backgroundColor: '#050505' }}>
       {/* Back Button */}
       <button
-        onClick={() => setShowForm(false)}
-        className="text-ghost hover:text-stark mb-8 self-start font-sans text-sm transition-colors duration-300 flex items-center gap-2"
+        onClick={() => navigate('/')}
+        className="mb-8 self-start font-sans text-sm transition-colors duration-300 flex items-center gap-2 hover:text-stark"
+        style={{ color: '#CCCCCC' }}
       >
         <span className="text-lg">←</span> Back
       </button>
 
       {/* Header */}
-      <div className="mb-8 animate-fade-in">
+      <div className={`mb-8 opacity-0 ${showContent ? 'animate-fade-in' : ''}`}>
         <h2 className="font-sans font-black text-3xl tracking-tight text-stark mb-2">
           {isLogin ? 'WELCOME BACK' : 'JOIN THE ARENA'}
         </h2>
-        <p className="text-ghost text-sm font-sans">
+        <p className="text-sm font-sans" style={{ color: '#CCCCCC' }}>
           {isLogin ? 'Continue your journey' : 'Begin tracking your risks'}
         </p>
       </div>
 
       {/* Toggle Buttons */}
-      <div className="flex gap-4 mb-8 animate-fade-in" style={{ animationDelay: '100ms' }}>
+      <div className="flex gap-4 mb-8 opacity-0 animate-fade-in" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
         <button
           onClick={() => setIsLogin(true)}
           className={`flex-1 py-3 text-sm font-sans uppercase tracking-wider border transition-all duration-300 ${
             isLogin 
               ? 'border-stark bg-stark text-void' 
-              : 'border-steel text-ghost hover:border-stark hover:text-stark'
+              : 'border-steel hover:border-stark'
           }`}
+          style={{ color: isLogin ? undefined : '#CCCCCC' }}
         >
           Sign In
         </button>
@@ -193,38 +119,40 @@ export default function Auth() {
           className={`flex-1 py-3 text-sm font-sans uppercase tracking-wider border transition-all duration-300 ${
             !isLogin 
               ? 'border-stark bg-stark text-void' 
-              : 'border-steel text-ghost hover:border-stark hover:text-stark'
+              : 'border-steel hover:border-stark'
           }`}
+          style={{ color: !isLogin ? undefined : '#CCCCCC' }}
         >
           Sign Up
         </button>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
         <div>
-          <label className="block text-xs uppercase tracking-wider text-ghost font-sans font-semibold mb-2">
+          <label className="block text-xs uppercase tracking-wider font-sans font-semibold mb-2" style={{ color: '#CCCCCC' }}>
             Email
           </label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-transparent border border-steel px-4 py-3 text-stark font-sans placeholder:text-ghost/50 focus:border-stark focus:outline-none transition-colors duration-300"
+            className="w-full bg-transparent border border-steel px-4 py-3 text-stark font-sans focus:border-stark focus:outline-none transition-colors duration-300"
             placeholder="your@email.com"
+            style={{ '::placeholder': { color: '#666666' } } as any}
             required
           />
         </div>
 
         <div>
-          <label className="block text-xs uppercase tracking-wider text-ghost font-sans font-semibold mb-2">
+          <label className="block text-xs uppercase tracking-wider font-sans font-semibold mb-2" style={{ color: '#CCCCCC' }}>
             Password
           </label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-transparent border border-steel px-4 py-3 text-stark font-sans placeholder:text-ghost/50 focus:border-stark focus:outline-none transition-colors duration-300"
+            className="w-full bg-transparent border border-steel px-4 py-3 text-stark font-sans focus:border-stark focus:outline-none transition-colors duration-300"
             placeholder="••••••••"
             required
           />
@@ -248,7 +176,7 @@ export default function Auth() {
       </form>
 
       {/* Footer */}
-      <p className="text-center text-xs text-ghost font-sans mt-8 tracking-wide">
+      <p className="text-center text-xs font-sans mt-8 tracking-wide" style={{ color: '#888888' }}>
         By continuing, you accept our terms of courage.
       </p>
     </div>

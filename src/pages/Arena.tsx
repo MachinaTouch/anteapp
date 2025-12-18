@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Filter } from 'lucide-react';
+import { ChevronRight, Filter, Brain } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,7 @@ interface Risk {
   forecast: string;
   status: string;
   created_at: string;
+  result?: string;
 }
 
 export default function Arena() {
@@ -58,13 +59,21 @@ export default function Arena() {
   };
 
   // Demo data if no risks exist
-  const demoRisks = [
+  const demoRisks: Risk[] = [
     { id: '1', description: 'Ask my manager for a 15% raise during tomorrow\'s quarterly review meeting', forecast: 'SUCCESS', status: 'active', created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
     { id: '2', description: 'Cold message 10 potential clients on LinkedIn with my new service offering', forecast: 'FAILURE', status: 'active', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
     { id: '3', description: 'Have the difficult conversation with my partner about our future plans', forecast: 'SUCCESS', status: 'active', created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() },
   ];
 
+  const demoSettlements: Risk[] = [
+    { id: '4', description: 'Asked for a promotion after being passed over twice', forecast: 'SUCCESS', result: 'success', status: 'settled', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: '5', description: 'Confronted my landlord about the broken heater', forecast: 'FAILURE', result: 'success', status: 'settled', created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString() },
+  ];
+
   const displayRisks = risks.length > 0 ? risks : demoRisks;
+  const displaySettlements = risks.filter(r => r.status === 'settled').length > 0 
+    ? risks.filter(r => r.status === 'settled').slice(0, 3) 
+    : demoSettlements;
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-background relative pb-20">
@@ -127,6 +136,39 @@ export default function Arena() {
           </div>
         </section>
 
+        {/* Intuition Analysis Card */}
+        <section className="mb-8">
+          <div className="border border-border p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <Brain className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <h4 className="font-bold text-sm">Intuition Analysis</h4>
+                <p className="text-xs text-muted-foreground">Your forecast accuracy</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center">
+                <div className="font-mono text-xl font-bold">78%</div>
+                <div className="text-xs text-muted-foreground">Accuracy</div>
+              </div>
+              <div className="text-center">
+                <div className="font-mono text-xl font-bold">37</div>
+                <div className="text-xs text-muted-foreground">Correct</div>
+              </div>
+              <div className="text-center">
+                <div className="font-mono text-xl font-bold">10</div>
+                <div className="text-xs text-muted-foreground">Incorrect</div>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-border">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-foreground"></div>
+                <span className="text-xs font-mono text-muted-foreground">TRENDING UPWARD +12%</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-black text-xl tracking-tight">ACTIVE WAGERS</h3>
@@ -168,6 +210,40 @@ export default function Arena() {
                     <ChevronRight className="w-4 h-4" />
                   </div>
                 </div>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Recent Settlements */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-black text-xl tracking-tight">RECENT SETTLEMENTS</h3>
+            <button 
+              onClick={() => navigate('/ledger')}
+              className="text-muted-foreground hover:text-foreground transition-colors text-xs font-mono"
+            >
+              View All →
+            </button>
+          </div>
+
+          {displaySettlements.map((risk, index) => (
+            <div
+              key={risk.id}
+              className="border border-border mb-3 p-4"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
+                  Risk #{1240 - index}
+                </span>
+                <span className={`font-mono text-xs font-bold ${risk.result === 'success' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {risk.result === 'success' ? 'SUCCESS' : 'FAILURE'}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed mb-2">{risk.description}</p>
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <span className="text-xs text-muted-foreground">{getTimeAgo(risk.created_at)}</span>
+                <span className="font-mono text-sm font-bold">+150 XP</span>
               </div>
             </div>
           ))}

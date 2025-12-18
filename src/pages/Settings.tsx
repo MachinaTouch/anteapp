@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Bell, Shield, HelpCircle, LogOut, ChevronRight } from 'lucide-react';
+import { ArrowLeft, User, Bell, Shield, HelpCircle, LogOut, ChevronRight, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,6 +15,20 @@ export default function SettingsPage() {
       description: 'You have been signed out successfully.',
     });
     navigate('/auth');
+  };
+
+  const handleRestorePurchases = () => {
+    toast({
+      title: 'Restoring Purchases',
+      description: 'Checking for previous purchases...',
+    });
+    // Simulate restore
+    setTimeout(() => {
+      toast({
+        title: 'No Purchases Found',
+        description: 'No previous purchases were found for this account.',
+      });
+    }, 2000);
   };
 
   const settingsSections = [
@@ -91,6 +105,24 @@ export default function SettingsPage() {
             </div>
           </section>
         ))}
+
+        {/* Purchases Section */}
+        <section className="px-6 py-6 border-b border-border">
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-4">Purchases</h3>
+          <button
+            onClick={handleRestorePurchases}
+            className="w-full flex items-center justify-between py-4 hover:bg-secondary/30 transition-colors -mx-2 px-2"
+          >
+            <div className="flex items-center gap-4">
+              <RotateCcw className="w-5 h-5 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Restore Purchases</div>
+                <div className="text-sm text-muted-foreground">Restore previous subscriptions</div>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </section>
 
         {/* Sign Out */}
         <section className="px-6 py-6">
